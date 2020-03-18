@@ -175,6 +175,7 @@ def get_num_data(param, foldername='./'):
             first = reader.__next__()
             return int(first[0]), int(first[1])
     else:
+        #print(f"{filename} does not exist.")
         return 0, 0
 
 
@@ -249,7 +250,8 @@ def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, f
 
     ret = np.zeros((min_ele, yarray.shape[0], xarray.shape[0]))
 
-    i = yarray.shape[0]-1
+    #i = yarray.shape[0]-1
+    i = 0
     for yparam in ParamIterator(temp_param, ylabel, yarray):
         j = 0
         for xparam in ParamIterator(yparam, xlabel, xarray):
@@ -257,7 +259,8 @@ def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, f
             for k in range(min_ele):
                 ret[k][i][j] = data[k]
             j += 1
-        i -= 1
+        #i -= 1
+        i += 1
 
     return ret
 
