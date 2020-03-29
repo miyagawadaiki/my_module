@@ -232,7 +232,7 @@ def read_and_get_ave(param, mx=-1, foldername='./'):
 
 
 # 指定個数以下の施行を平均したものをパラメータセットごと読み込んでmatrixで返す    
-def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, foldername='./'):
+def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, foldername='./', show=True):
     nums = get_num_data_matrix(temp_param, xlabel, ylabel, xarray, yarray, foldername)
     min_nd = np.amin(nums[0])
     min_ele = np.amin(nums[1])
@@ -247,6 +247,9 @@ def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, f
         mx = min_nd
     else:
         mx = min(mx, min_nd)
+    
+    if show:
+        print('attemps:', mx)
 
     ret = np.zeros((min_ele, yarray.shape[0], xarray.shape[0]))
 
