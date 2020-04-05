@@ -2,6 +2,7 @@ import csv
 import numpy as np
 import os
 import os.path
+import copy
 
 
 # Parameter クラスに継承させるスーパークラス
@@ -29,8 +30,9 @@ class SParameter:
         return self.__str__() + suf
     
     def copy(self):
-        cp = SParameter()
-        cp.pdict = self.pdict.copy()
+        #cp = SParameter()
+        cp = copy.deepcopy(self)
+        #cp.pdict = self.pdict.copy()
         return cp
 
 
