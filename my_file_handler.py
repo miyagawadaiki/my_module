@@ -36,6 +36,20 @@ class SParameter:
         return cp
 
 
+    def update(self, key, val):
+        try:
+            v = self.pdict[key]
+            if isinstance(v, int):
+                v = int(val)
+            elif isinstance(v, float):
+                v = float(val)
+            else:
+                v = val
+            self.pdict[key] = v
+        except KeyError as e:
+            print(f"'{key}' does not exist.", e)
+
+
 # あるパラメータだけ動かす際に用いる Parameter のイテレータ
 class ParamIterator(object):
     def __init__(self, param, p, array):
