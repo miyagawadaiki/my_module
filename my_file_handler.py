@@ -50,6 +50,12 @@ class SParameter:
             print(f"'{key}' does not exist.", e)
 
 
+    def update_from_dict(self, dic):
+        for k,v in dic.items():
+            self.update(k,v)
+
+
+
 # あるパラメータだけ動かす際に用いる Parameter のイテレータ
 class ParamIterator(object):
     def __init__(self, param, p, array):
@@ -282,6 +288,11 @@ def read_and_get_ave_matrix(temp_param, xlabel, ylabel, xarray, yarray, mx=-1, f
         i += 1
 
     return ret
+
+
+def read_result_1D(temp_param, xlabel, xarray, mx=-1, foldername='./', show=True):
+    dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
+    return read_and_get_ave_matrix(temp_param, xlabel, dammy_key, xarray, np.array([dammy_val]), mx, foldername, show)[:,0]
 
 
 
