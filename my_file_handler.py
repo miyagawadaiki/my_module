@@ -55,6 +55,14 @@ class SParameter:
             self.update(k,v)
 
 
+    def update_from_argv(self, args):
+        for s in args:
+            sp = s.split('=')
+            key = sp[0]
+            val = sp[1]
+            self.update(key, val)
+
+
 
 # あるパラメータだけ動かす際に用いる Parameter のイテレータ
 class ParamIterator(object):
