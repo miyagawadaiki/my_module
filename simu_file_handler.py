@@ -258,7 +258,7 @@ class SimuFileHandler():
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
-    def read_and_get_ave(self, param, mx=-1): #, foldername='./'):
+    def read_and_get_ave(self, param, mx=-1, show=False): #, foldername='./'):
         #filename = param.get_filename(".csv")
         #path = foldername + filename
         #filename = param.get_filename(".csv")
@@ -287,6 +287,8 @@ class SimuFileHandler():
                 tmpa = np.array(tmp[:-1]) * tmp[-1]
                 data = data + tmpa
                 count += tmp[-1]
+            
+            print('attempts:', int(count))
             
             return data / count
     
