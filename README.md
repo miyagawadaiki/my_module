@@ -18,7 +18,7 @@
 <br>
 
 ## 使用方法
-一度使ってみたいならSample/Sample.ipynbを使ってみることを推奨する．
+一度使ってみたいならSample/Sample.ipynbを使ってみることを推奨する．より詳しくはreference.mdに記述してある．
 
 ### 1. importする
 例えば，下記のようにタイプしてまずモジュールをimportする（これはソースコードと同じ場所にsimu_file_handler.pyがある場合の書き方）
