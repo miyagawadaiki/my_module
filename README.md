@@ -18,17 +18,51 @@
 <br>
 
 ## 使用方法
+一度使ってみたいならSample/Sample.ipynbを使ってみることを推奨する．
 
-### importする
+### 1. importする
 例えば，下記のようにタイプしてまずモジュールをimportする．
 ```python
-import simu_file_handler as sfh
+import simu_file_handler as sh
 ```
 
-<!--
-### SParameterクラスを継承してシミュレーションにあったパラメータ統括クラスを準備する
-例としてパラメータ <img src="https://latex.codecogs.com/gif.latex?n,p" /> による
-二項分布 <img src="https://latex.codecogs.com/gif.latex?B(n,p)" /> についてモンテカルロ法で近似的な分布を得る場合を考える．
+### 2. 変数のクラスを定義する（SParameterクラスを継承する）
+シミュレーションで使用される変数をSParameterクラスを継承したクラスによってまとめる．  
 
-今回は確率変数<img src="https://latex.codecogs.com/gif.latex?X" />
--->
+例えば，変数a,b,c,dを用いるならば，次のように書ける．
+
+```python
+class Parameter(sh.SParameter):
+    
+    # パラメータの設定
+    def __init__(self, a=1.0, b=0.01, c=0.01, d=1.0, sd=None):
+        # 親クラスの初期化
+        super().__init__(sd)
+        
+        self.pdict['a'] = a
+        self.pdict['b'] = b
+        self.pdict['c'] = c
+        self.pdict['d'] = c
+```
+
+### 3. SimuFileHandlerクラスのインスタンスを生成する
+データ格納用メソッドなどを持った`SimuFindHandler`クラスのインスタンスを作る．  
+その際，データ格納用のフォルダパスを必要とするので，先に用意しておく必要がある．
+
+例えば，以下のように書く．
+
+```python
+folder = './data'
+sfh = sh.SimuFileHandler(folder, Parameter())
+```
+
+### 4. シミュレーションコードを書き，データを追加する
+シミュレーションコードは各々が目的に従ったものを書けば良い．  
+
+データをフォルダに追加するためには`add_one_result`メソッドや`add_results`メソッドを使う必要がある．
+
+### 5. データを読み出す
+プロット等でデータを読み込みたい場合は，`get_and_read_ave`メソッドや，変数の範囲を指定して読み込める`get_ave_1D`メソッドを用いることができる．
+
+### 番外編. 格納したデータのサマリ
+`SimuFileHandler.summary`メソッドにより，どの変数を重点的に調べたかなどを視覚的に表示できる（ある程度は見れるがまだ開発中 06/17）

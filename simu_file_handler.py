@@ -4,6 +4,9 @@ import os
 import os.path
 import copy
 import pathlib
+import re
+import glob
+import matplotlib.pyplot as plt
 
 
 # Parameter クラスに継承させるスーパークラス
@@ -110,9 +113,18 @@ class ParamIterator(object):
 
 class SimuFileHandler():
     
-    def __init__(self, foldername):
+    def __init__(self, foldername, tmp_param=SParameter()):
         self.folderpath = pathlib.Path(foldername).resolve()
+        self.tmp_param = tmp_param
         #self.foldername = foldername
+
+
+    def __str__(self):
+        c = pathlib.Path.cwd()
+        p = self.folderpath.relative_to(c)
+        s = f'Folder: {p}' + '\n'
+        s += f'Parameter: {str(list(self.tmp_param.pdict.keys()))}'
+        return s
         
     
     def get_filepath(self, param):
@@ -121,12 +133,120 @@ class SimuFileHandler():
     
     
     
-    # 現在フォルダー内に保管されているデータについて概要を表示する（ようにしたい）
+    # 特定の1つのパラメータについてデータになっている値の集合を得る（その後，その種類数取得などに使う）
+    def _get_one_value_set(self, pkey, param, suf='csv'):
+
+        # フォルダ内のファイル名を全て取得
+        file_list = glob.glob(str(self.folderpath) + '/*.csv')
+        file_list = [os.path.split(f)[1] for f in file_list]
+
+        # パラメータキーの直後にある数値（あるいは文字列）を抽出
+        value_list = [re.findall(f'{pkey}.*?[_.]', fn)[0] for fn in file_list]
+        value_list = [s[len(pkey):-1] for s in value_list]
+        # print(value_list)   ## for debug
+
+        # 数値の種類数を取得して返す
+        value_set = set(value_list)
+        return value_set
+
+
+    def _get_multi_value_set(self, pkeys, param, suf='csv'):
+
+        # フォルダ内のファイル名を全て取得
+        file_list = glob.glob(str(self.folderpath) + '/*.csv')
+        file_list = [os.path.split(f)[1] for f in file_list]
+
+        value_list = []
+        for fn in file_list:
+            s = ''
+            for pk in pkeys:
+                tmp = re.findall(f'{pk}.*?[_.]', fn)[0]
+                s += tmp[len(pk):-1] + '_'
+            value_list.append(s)
+
+        # 数値の種類数を取得して返す
+        value_set = set(value_list)
+        return value_set
+    
+    
+    
+    
+    # 現在フォルダー内に保管されているデータについて概要を表示する
     def summary(self):
-        pass
-    
-    
-    
+        print(self)
+
+        print()
+        fig = plt.figure(figsize=(6,4))
+        ax = fig.add_subplot(111)
+        param = self.tmp_param
+        pd = param.pdict
+        n = len(pd.keys())
+        keys = list(pd.keys())
+
+
+        # パラメータがとる値の種類数をそれぞれ取得して辞書にする
+        div_dict = {k:len(self._get_one_value_set(k, param)) for k in pd.keys()}
+
+        # パラメータがとる値の種類数を棒グラフでプロット
+        print('# of values that was set to each variable. ')
+        x = list(div_dict.keys())
+        y = list(div_dict.values())
+
+        ax.set_ylim(1,np.max(y)*1.01)
+        ax.bar(x, y, align="center")
+        ax.set_xticklabels(keys, fontsize=14)
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        plt.show()
+
+
+
+        
+
+        # 2つのパラメータの組み合わせの種類数をヒートマップにする
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+
+        data = np.zeros((n, n))
+
+        for y in range(n):
+            for x in range(n):
+                if y == x:
+                    continue
+                kx = keys[x]
+                ky = keys[y]
+
+                data[y][x] = len(self._get_multi_value_set((kx, ky), param))
+
+
+        ax.imshow(data, vmin=1)
+        ax.set_xticks(np.arange(len(keys)))
+        ax.set_yticks(np.arange(len(keys)))
+
+        ax.set_xticklabels(keys, fontsize=14)
+        ax.set_yticklabels(keys, fontsize=14)
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        # Loop over data dimensions and create text annotations.
+        for i in range(len(keys)):
+            for j in range(len(keys)):
+                text = ax.text(j, i, data[i, j],
+                               ha="center", va="center", color="w")
+
+        fig.tight_layout()
+        plt.show()
+
+
+
+
+
+
     # 新しい結果を追加する（必ず1回分とする）
     # 1行目には収められている試行回数のみを記述する
     # そのため，データの追加と言えど一度すべて読み込み，試行回数をインクリメント
@@ -242,6 +362,8 @@ class SimuFileHandler():
     
     # 2パラメータを変化させたときのデータについて、データ数の行列を返す
     def get_num_data_matrix(self, temp_param, xlabel, ylabel, xarray, yarray): #, foldername='./'):
+
+        xarray = np.array(xarray); yarray = np.array(yarray)
         ret = np.zeros((2, yarray.shape[0], xarray.shape[0]), dtype=int)
     
         i = 0
