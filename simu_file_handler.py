@@ -476,7 +476,7 @@ class SimuFileHandler():
     
     
     # 特定の行だけ消す（シミュレーションを失敗したとき用）
-    def delete_rows(self, param, start, stop, foldername='./'):
+    def delete_rows(self, param, start, stop):
         #filename = param.get_filename(".csv")
         #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
