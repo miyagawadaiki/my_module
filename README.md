@@ -21,8 +21,9 @@
 一度使ってみたいならSample/Sample.ipynbを使ってみることを推奨する．
 
 ### 1. importする
-例えば，下記のようにタイプしてまずモジュールをimportする．
+例えば，下記のようにタイプしてまずモジュールをimportする（これはソースコードと同じ場所にsimu_file_handler.pyがある場合の書き方）
 ```python
+sys.path.append("./")
 import simu_file_handler as sh
 ```
 
