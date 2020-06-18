@@ -42,7 +42,7 @@ class Parameter(sh.SParameter):
         self.pdict['a'] = a
         self.pdict['b'] = b
         self.pdict['c'] = c
-        self.pdict['d'] = c
+        self.pdict['d'] = 
 ```
 
 ### 3. SimuFileHandlerクラスのインスタンスを生成する
