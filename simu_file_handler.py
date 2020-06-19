@@ -36,7 +36,7 @@ class SParameter:
                 s += f"{k:s}{int(round(v*100)):d}_"
                 #s += f"{k:s}{int(v*100):d}_"
             else:
-                s += f"{v:s}_"
+                s += f"{k:s}{v:s}_"
         return s[:-1]
     
     
