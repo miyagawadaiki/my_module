@@ -18,7 +18,7 @@
 <br>
 
 ## 使用方法
-一度使ってみたいなら[Sample/Sample.ipynb](https://github.com/miyagawadaiki/simu_file_handler/blob/master/Sample/Sample.ipynb)を使ってみることを推奨する．より詳しくは[reference.md](https://github.com/miyagawadaiki/simu_file_handler/blob/master/reference.md)に記述してある．
+一度使ってみたいなら[Sample/BinDist.ipynb](https://github.com/miyagawadaiki/simu_file_handler/blob/master/Sample/BinDist.ipynb)か[Sample/EvolGame.ipynb](https://github.com/miyagawadaiki/simu_file_handler/blob/master/Sample/EvolGame.ipynb)を使ってみることを推奨する(それぞれ二項分布，進化ゲームのシミュレーションに適用してみた例である)．より詳しくは[reference.md](https://github.com/miyagawadaiki/simu_file_handler/blob/master/reference.md)に記述してある．
 
 ### 1. importする
 例えば，下記のようにタイプしてまずモジュールをimportする（これはソースコードと同じ場所にsimu_file_handler.pyがある場合の書き方）
