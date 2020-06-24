@@ -36,7 +36,7 @@ class SParameter:
                 s += f"{k:s}{int(round(v*100)):d}_"
                 #s += f"{k:s}{int(v*100):d}_"
             else:
-                s += f"{k:s}{v:s}_"
+                s += f"{k:s}{str(v):s}_"
         return s[:-1]
     
     
@@ -117,6 +117,10 @@ class SimuFileHandler():
         self.folderpath = pathlib.Path(foldername).resolve()
         self.tmp_param = tmp_param
         #self.foldername = foldername
+        
+        if not os.path.exists(str(self.folderpath)):
+            print(f'Make directory: {self.folderpath}')
+            os.mkdir(str(self.folderpath))
 
 
     def __str__(self):
@@ -410,7 +414,8 @@ class SimuFileHandler():
                 data = data + tmpa
                 count += tmp[-1]
             
-            print('attempts:', int(count))
+            if show:
+                print('attempts:', int(count))
             
             return data / count
     
@@ -447,7 +452,7 @@ class SimuFileHandler():
         for yparam in ParamIterator(temp_param, ylabel, yarray):
             j = 0
             for xparam in ParamIterator(yparam, xlabel, xarray):
-                data = self.read_and_get_ave(xparam, mx)#, foldername)
+                data = self.read_and_get_ave(xparam, mx, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
                 j += 1
