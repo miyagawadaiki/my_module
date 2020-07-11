@@ -19,6 +19,10 @@ class SParameter:
         self.sd = sd
         
         self.set_seed()
+
+
+    def reset(self):
+        pass
     
     
     def set_seed(self):
@@ -31,12 +35,12 @@ class SParameter:
         s = ""
         for k,v in self.pdict.items():
             if isinstance(v, int):
-                s += f"{k:s}{v:d}_"
+                s += f"{k:s}={v:d}_"
             elif isinstance(v, float):
-                s += f"{k:s}{int(round(v*100)):d}_"
+                s += f"{k:s}={int(round(v*100)):d}_"
                 #s += f"{k:s}{int(v*100):d}_"
             else:
-                s += f"{k:s}{str(v):s}_"
+                s += f"{k:s}={str(v):s}_"
         return s[:-1]
     
     
@@ -50,6 +54,7 @@ class SParameter:
         #cp = SParameter()
         cp = copy.deepcopy(self)
         #cp.pdict = self.pdict.copy()
+        cp.reset()
         return cp
 
 
@@ -64,6 +69,8 @@ class SParameter:
             else:
                 v = val
             self.pdict[key] = v
+
+            self.reset()
         except KeyError as e:
             print(f"'{key}' does not exist.", e)
 
@@ -145,7 +152,7 @@ class SimuFileHandler():
         file_list = [os.path.split(f)[1] for f in file_list]
 
         # パラメータキーの直後にある数値（あるいは文字列）を抽出
-        value_list = [re.findall(f'{pkey}.*?[_.]', fn)[0] for fn in file_list]
+        value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
         value_list = [s[len(pkey):-1] for s in value_list]
         # print(value_list)   ## for debug
 
@@ -164,7 +171,7 @@ class SimuFileHandler():
         for fn in file_list:
             s = ''
             for pk in pkeys:
-                tmp = re.findall(f'{pk}.*?[_.]', fn)[0]
+                tmp = re.findall(f'{pk}=.*?[_.]', fn)[0]
                 s += tmp[len(pk):-1] + '_'
             value_list.append(s)
 
@@ -384,7 +391,7 @@ class SimuFileHandler():
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
-    def read_and_get_ave(self, param, mx=-1, show=False): #, foldername='./'):
+    def read_and_get_ave(self, param, mx=-1):#, show=False): #, foldername='./'):
         #filename = param.get_filename(".csv")
         #path = foldername + filename
         #filename = param.get_filename(".csv")
@@ -414,8 +421,10 @@ class SimuFileHandler():
                 data = data + tmpa
                 count += tmp[-1]
             
+            """
             if show:
                 print('attempts:', int(count))
+            """
             
             return data / count
     
@@ -452,7 +461,7 @@ class SimuFileHandler():
         for yparam in ParamIterator(temp_param, ylabel, yarray):
             j = 0
             for xparam in ParamIterator(yparam, xlabel, xarray):
-                data = self.read_and_get_ave(xparam, mx, show)#, foldername)
+                data = self.read_and_get_ave(xparam, mx)#, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
                 j += 1
