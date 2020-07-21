@@ -16,27 +16,46 @@ class SParameter:
     # 必要なパラメータに合わせてオーバーライドする
     def __init__(self, sd=None):
         self.pdict = {}
+        self.types = {}
         self.sd = sd
         
         self.set_seed()
-    
+
+
+    def reset(self):
+        self.set_types()    
+
     
     def set_seed(self):
         if self.sd != None:
             np.random.seed(seed=self.sd)
+
+
+    def set_types(self):
+        self.types = {k:type(v) for k,v in self.pdict.items()}
     
     
     # ファイル名の書式を変えたければオーバーライドする
     def __str__(self):
         s = ""
         for k,v in self.pdict.items():
-            if isinstance(v, int):
-                s += f"{k:s}{v:d}_"
-            elif isinstance(v, float):
-                s += f"{k:s}{int(round(v*100)):d}_"
-                #s += f"{k:s}{int(v*100):d}_"
+            if len(self.types) > 0:
+                if self.types[k] is int:
+                    s += f"{k:s}={v:d}_"
+                elif self.types[k] is float:
+                    s += f"{k:s}={v:E}_"
+                else:
+                    s += f"{k:s}={str(v):s}_"
+                    
             else:
-                s += f"{k:s}{str(v):s}_"
+                if isinstance(v, int):
+                    s += f"{k:s}={v:d}_"
+                elif isinstance(v, float):
+                    s += f"{k:s}={v:E}_"
+                    #s += f"{k:s}={int(round(v*100)):d}_"
+                    #s += t.replace('.', '')
+                else:
+                    s += f"{k:s}={str(v):s}_"
         return s[:-1]
     
     
