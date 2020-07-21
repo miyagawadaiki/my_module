@@ -7,6 +7,8 @@ import pathlib
 import re
 import glob
 import matplotlib.pyplot as plt
+import datetime
+import sys
 
 
 # Parameter クラスに継承させるスーパークラス
@@ -139,10 +141,27 @@ class SimuFileHandler():
         self.folderpath = pathlib.Path(foldername).resolve()
         self.tmp_param = tmp_param
         #self.foldername = foldername
+        self.exe_file = sys.argv[0]#; print(self.exe_file)
         
         if not os.path.exists(str(self.folderpath)):
             print(f'Make directory: {self.folderpath}')
             os.mkdir(str(self.folderpath))
+
+            """
+            # ログファイルを作成
+            log_path = self.folderpath / 'log'
+            os.mkdir(str(log_path))
+
+            # 実行ファイル名の記録用
+            with open(str(log_path / 'execusion.log'), "w") as f:
+                f.write('Initialized ('+str(datetime.datetime.now())+')')
+
+            # シミュレーションしたパラメータと実行番号を紐づけて記録
+            with open(str(log_path / 'data.log'), 'w') as f:
+                f.write('Initialized ('+str(datetime.datetime.now())+')')
+            """
+            
+
 
 
     def __str__(self):
