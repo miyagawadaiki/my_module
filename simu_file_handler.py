@@ -7,6 +7,7 @@ import pathlib
 import re
 import glob
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import datetime
 import sys
 
@@ -134,7 +135,6 @@ class ParamIterator(object):
 
 
 
-
 class SimuFileHandler():
     
     def __init__(self, foldername, tmp_param=SParameter()):
@@ -172,14 +172,17 @@ class SimuFileHandler():
         return s
         
     
-    def get_filepath(self, param):
-        fname = param.get_filename()
+    def get_filepath(self, param, suf=None):
+        if suf != None:
+            fname = param.get_filename(suf)
+        else:
+            fname = param.get_filename()
         return self.folderpath / fname
     
     
     
     # 特定の1つのパラメータについてデータになっている値の集合を得る（その後，その種類数取得などに使う）
-    def _get_one_value_set(self, pkey, param, suf='csv'):
+    def _get_one_value_set(self, pkey, param, suf='.csv'):
 
         # フォルダ内のファイル名を全て取得
         file_list = glob.glob(str(self.folderpath) + '/*.csv')
@@ -195,7 +198,7 @@ class SimuFileHandler():
         return value_set
 
 
-    def _get_multi_value_set(self, pkeys, param, suf='csv'):
+    def _get_multi_value_set(self, pkeys, param, suf='.csv'):
 
         # フォルダ内のファイル名を全て取得
         file_list = glob.glob(str(self.folderpath) + '/*.csv')
@@ -520,7 +523,98 @@ class SimuFileHandler():
         
         return self.read_and_get_ave_matrix(temp_param, xlabel, ylabel, 
                                             xarray, yarray, mx, show)
+
+
+
+
+    # データ生成用の関数を使ってアニメーション用のファイルを作る
+    def write_anim_data(self, param, lx, ly, MAX_ITER, 
+                        iter_func, gen_func, 
+                        iter_args=None, gen_args=None, 
+                        ini_func=None, ini_args=None):
+
+        path = str(self.get_filepath(param, suf='.ani'))
+
+        if iter_args != None and iter_args is tuple:
+            iter_func_ = lambda :iter_func(*iter_args)
+        else:
+            iter_func_ = iter_func
+
+        if gen_args != None and gen_args is tuple:
+            gen_func_ = lambda :gen_func(*gen_args)
+        else:
+            gen_func_ = gen_func
+
+
+        with open(path, "w") as f:
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerow([lx,ly,MAX_ITER])   # [データの横幅, 縦幅, ステップ数]
+
+            if ini_func != None:
+                if ini_args != None:
+                    ini_func_ = lambda :ini_func(*ini_args)
+                else:
+                    ini_func_ = ini_func
+
+                ini_func_()
+
+            data = gen_func_()
+            writer.writerows(data)
+            
+
+            for i in range(MAX_ITER):
+                iter_func_()
+                data = gen_func_()
+
+                writer.writerows(data)
+
+
+
+
+    # animation用のimsを作成する（描画用関数を用いて）
+    def read_anim_data(self, fig, param, draw_func, draw_args=None, dtype=float, interval=200, frames=None):
+
+        path = str(self.get_filepath(param, suf='.ani'))
+
+        if draw_args != None:
+            draw_func_ = lambda data, i: draw_func(data, i, *draw_args)
+        else:
+            draw_func_ = draw_func
+        
+        #fig = plt.figure()
+        ims = []
+
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+
+            first = reader.__next__()
+            lx = int(first[0])
+            ly = int(first[1])
+            MAX_ITER = int(first[2])
+
+            if frames != None and MAX_ITER > frames:
+                MAX_ITER = frames
+            
+            for i in range(MAX_ITER+1):
+
+                data = np.zeros((ly,lx))
+
+                for j in range(ly):
+                    row = reader.__next__()
+                    tmp = np.array(list(map(dtype, row)))
+                    
+                    data[j,:] = tmp
+
+                ims.append(draw_func_(data, i))
+
+                show_progress(i, MAX_ITER, 20)
+
+            ani = animation.ArtistAnimation(fig, ims, interval)
+            return ani
+
     
+
+
     
     
     # 特定の行だけ消す（シミュレーションを失敗したとき用）
@@ -569,3 +663,14 @@ class SimuFileHandler():
     # 10試行のデータとする．行の先頭には10と書いておく
     def compress_file(path):
         pass
+
+
+
+
+
+
+def show_progress(i, MAX_ITER, length, fs='', bs=''):
+    if i%(MAX_ITER/length) == 0:
+        print(fs, "*"*int(i/(MAX_ITER/length)) + "_"*(length-int(i/(MAX_ITER/length))), \
+                f"{int(i/MAX_ITER*100):3d}%", bs, end='\r')
+
