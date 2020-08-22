@@ -424,6 +424,43 @@ class SimuFileHandler():
             i += 1
     
         return ret
+
+
+
+    def read_and_get_one(self, param, index=0):
+        path = str(self.get_filepath(param))
+        
+        num = 0
+        n_ele = 0
+        
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+            first = reader.__next__()
+            num = int(first[0])
+            n_ele = int(first[1])
+
+            if num <= index:
+                index = num-1
+            elif index < 0:
+                index = np.randint(num)
+                
+            
+            data = np.zeros(n_ele)
+            count = 0
+            
+            for row in reader:
+                tmp = list(map(float, row))
+                if count + tmp[-1] > index:
+                    break
+                data = np.array(tmp[:-1]) * tmp[-1]
+                count += tmp[-1]
+            
+            """
+            if show:
+                print('attempts:', int(count))
+            """
+            
+            return data
     
     
     
