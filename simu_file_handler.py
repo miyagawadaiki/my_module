@@ -450,9 +450,9 @@ class SimuFileHandler():
             
             for row in reader:
                 tmp = list(map(float, row))
+                data = np.array(tmp[:-1]) * tmp[-1]
                 if count + tmp[-1] > index:
                     break
-                data = np.array(tmp[:-1]) * tmp[-1]
                 count += tmp[-1]
             
             """
