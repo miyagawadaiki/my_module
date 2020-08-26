@@ -668,8 +668,6 @@ class SimuFileHandler():
                 first = reader.__next__()
                 num = int(first[0])
                 n_ele = int(first[1])
-                if n_ele != len(r):
-                    raise ValueError("length of one_result do not match with the file")
                 
                 for row in reader:
                     old.append(row)
