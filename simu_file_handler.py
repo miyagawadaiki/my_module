@@ -526,7 +526,7 @@ class SimuFileHandler():
             mx = min(mx, min_nd)
         
         if show:
-            print('attemps:', mx)
+            print('attempts:', mx)
     
         ret = np.zeros((min_ele, yarray.shape[0], xarray.shape[0]))
     
@@ -690,6 +690,9 @@ class SimuFileHandler():
         #dfilename = dparam.get_filename(".csv")
         #dpath = os.path.join(os.getcwd(), foldername, dfilename)
         dpath = str(self.get_filepath(dparam))
+        if os.path.exists(dpath):
+            print('Destination file already exists.')
+            return
     
         os.rename(spath, dpath)
     
