@@ -655,30 +655,69 @@ class SimuFileHandler():
     
     
     # 特定の行だけ消す（シミュレーションを失敗したとき用）
-    def delete_rows(self, param, start, stop):
-        #filename = param.get_filename(".csv")
-        #path = os.path.join(os.getcwd(), foldername, filename)
+    def delete_rows(self, param, start, end):
+
         path = str(self.get_filepath(param))
+        num = 0
+        n_ele = 0
+        old = []
+
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                reader = csv.reader(f, lineterminator='\n')
+                first = reader.__next__()
+                num = int(first[0])
+                n_ele = int(first[1])
+                if n_ele != len(r):
+                    raise ValueError("length of one_result do not match with the file")
+                
+                for row in reader:
+                    old.append(row)
+        else:
+            raise ValueError(f"{path} does not exist.")
         
-        with open(path, "r") as f:
-            reader = csv.reader(f, lineterminator='\n')
-            num = int(reader.__next__()[0])
-            old = []
-            
-            for row in reader:
-                old.append(row)
-        
-        if start >= stop or start >= num or stop < 0:
+
+        if start >= end or start >= num or end < 0:
             raise ValueError("value of start or stop is not correct")
+
+        if end > num:
+            end = num
+        if start < 0:
+            start = 0
+
+        del old[start:end]
             
+
         with open(path, "w") as f:
             writer = csv.writer(f, lineterminator='\n')
-            writer.writerow([num-(stop-start)])
-            i = 0
-            
+            writer.writerow([num-(end-start), n_ele])
+
             for row in old:
-                if not(i >= start and i < stop):
+                writer.writerow(row)
+            
+            """
+            for row in old:
+                if not(i >= start and i < end):
                     writer.writerow(row)
+            """
+
+
+
+
+    # 古い(新しい)データをnum個残してあとは消す
+    def trim_rows(self, param, num, basis='older'):
+        n = self.get_num_data(param)
+        if basis == 'older':
+            st = 0
+            ed = num
+        elif basis == 'newer':
+            st = n - num
+            ed = n
+
+        self.delete_rows(param, st, ed)
+        
+
+
     
     
     
