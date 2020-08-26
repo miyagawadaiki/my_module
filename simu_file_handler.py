@@ -704,7 +704,7 @@ class SimuFileHandler():
 
     # 古い(新しい)データをnum個残してあとは消す
     def trim_rows(self, param, num, basis='older'):
-        n = self.get_num_data(param)
+        n = self.get_num_data(param)[0]
         if basis == 'older':
             st = num
             ed = n
