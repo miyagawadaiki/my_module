@@ -706,11 +706,11 @@ class SimuFileHandler():
     def trim_rows(self, param, num, basis='older'):
         n = self.get_num_data(param)
         if basis == 'older':
-            st = 0
-            ed = num
-        elif basis == 'newer':
-            st = n - num
+            st = num
             ed = n
+        elif basis == 'newer':
+            st = 0
+            ed = n - num
 
         self.delete_rows(param, st, ed)
         
