@@ -568,7 +568,8 @@ class SimuFileHandler():
     def write_anim_data(self, param, lx, ly, MAX_ITER, 
                         iter_func, gen_func, 
                         iter_args=None, gen_args=None, 
-                        ini_func=None, ini_args=None):
+                        ini_func=None, ini_args=None,
+                        entitle_func=None, entitle_args=None):
 
         path = str(self.get_filepath(param, suf='.ani'))
 
@@ -581,6 +582,14 @@ class SimuFileHandler():
             gen_func_ = lambda :gen_func(*gen_args)
         else:
             gen_func_ = gen_func
+
+        if entitle_func != None:
+            if entitle_args != None and entitle_args is tuple:
+                entitle_func_ = lambda i:entitle_func(i, *entitle_args)
+            else:
+                entitle_func_ = entitle_func
+        else:
+            entitle_func_ = lambda i: ''
 
 
         with open(path, "w") as f:
@@ -596,6 +605,7 @@ class SimuFileHandler():
                 ini_func_()
 
             data = gen_func_()
+            writer.writerow([entitle_func_(0)])
             writer.writerows(data)
             
 
@@ -603,6 +613,7 @@ class SimuFileHandler():
                 iter_func_()
                 data = gen_func_()
 
+                writer.writerow([entitle_func_(i+1)])
                 writer.writerows(data)
 
 
@@ -614,7 +625,7 @@ class SimuFileHandler():
         path = str(self.get_filepath(param, suf='.ani'))
 
         if draw_args != None:
-            draw_func_ = lambda data, i: draw_func(data, i, *draw_args)
+            draw_func_ = lambda data, i, text: draw_func(data, i, text, *draw_args)
         else:
             draw_func_ = draw_func
         
@@ -635,6 +646,7 @@ class SimuFileHandler():
             for i in range(MAX_ITER+1):
 
                 data = np.zeros((ly,lx))
+                title_text = reader.__next__()
 
                 for j in range(ly):
                     row = reader.__next__()
@@ -642,7 +654,7 @@ class SimuFileHandler():
                     
                     data[j,:] = tmp
 
-                ims.append(draw_func_(data, i))
+                ims.append(draw_func_(data, i, title_text[0]))
 
                 show_progress(i, MAX_ITER, 20)
 
