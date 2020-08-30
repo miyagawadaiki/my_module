@@ -60,11 +60,57 @@ class SParameter:
                 else:
                     s += f"{k:s}={str(v):s}_"
         return s[:-1]
-    
-    
+
+
     # ファイル名を取得
     def get_filename(self, suf='.csv'):
+        if suf == '':
+            print("You must set suffix. '.csv' is set automatically.")
+            suf = '.csv'
+
         return self.__str__() + suf
+    
+    
+    # ファイル名からパラメータに変換
+    def conv_fname_to_param(self, fname):
+        cp = self.copy()
+        new_dict = {}
+
+        # .~ の形式の拡張子はファイル名に必ずついているとする
+        fname = fname.rsplit('.', 1)[0]
+        fname = fname + '_'
+
+        for key, val in self.pdict.items():
+            l = re.findall(f'{key}=.*?[_]', fname)
+            if len(l) == 0:
+                raise Error('The file name is strange or does not have suffix.')
+            
+            tmp = l[0]
+            #tmp = re.findall(f'{key}=.*?[_]', fname)[0]
+            #print(tmp)
+            value_str = tmp[len(key)+1:-1]
+
+            if len(self.types) > 0:
+                if self.types[key] is int:
+                    v = int(value_str)
+                elif self.types[key] is float:
+                    v = float(value_str)
+                else:
+                    v = value_str
+                    
+            else:
+                if isinstance(val, int):
+                    v = int(value_str)
+                elif isinstance(val, float):
+                    v = float(value_str)
+                else:
+                    v = value_str
+
+            new_dict[key] = v
+        
+        cp.update_from_dict(new_dict)
+        return cp
+
     
     
     # オブジェクトのコピー
@@ -106,6 +152,15 @@ class SParameter:
             key = sp[0]
             val = sp[1]
             self.update(key, val)
+
+
+    # 指定された値を含むかどうか
+    def include(self, pd):
+        for k,v in pd.items():
+            if self.pdict[k] != v:
+                return False
+
+        return True
 
 
 
@@ -178,19 +233,39 @@ class SimuFileHandler():
         else:
             fname = param.get_filename()
         return self.folderpath / fname
+
+
+
+    def _get_all_paths(self, suf='.csv'):
+        # フォルダ内のファイル名を全て取得
+        file_list = glob.glob(str(self.folderpath) + '/*' + suf)
+
+        return file_list
+    
+    
+    
+    def _get_all_fnames(self, suf='.csv'):
+        # フォルダ内のファイル名を全て取得
+        file_list = glob.glob(str(self.folderpath) + '/*' + suf)
+        file_list = [os.path.split(f)[1] for f in file_list]
+
+        return file_list
     
     
     
     # 特定の1つのパラメータについてデータになっている値の集合を得る（その後，その種類数取得などに使う）
-    def _get_one_value_set(self, pkey, param, suf='.csv'):
+    def _get_one_value_set(self, pkey, suf='.csv'):  # param
 
         # フォルダ内のファイル名を全て取得
-        file_list = glob.glob(str(self.folderpath) + '/*.csv')
-        file_list = [os.path.split(f)[1] for f in file_list]
+        file_list = self._get_all_fnames(suf)
+        #file_list = glob.glob(str(self.folderpath) + '/*.csv')
+        #file_list = [os.path.split(f)[1] for f in file_list]
 
         # パラメータキーの直後にある数値（あるいは文字列）を抽出
-        value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
-        value_list = [s[len(pkey):-1] for s in value_list]
+        param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        value_list = [p.pdict[pkey] for p in param_list]
+        #value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
+        #value_list = [s[len(pkey):-1] for s in value_list]
         # print(value_list)   ## for debug
 
         # 数値の種類数を取得して返す
@@ -198,12 +273,24 @@ class SimuFileHandler():
         return value_set
 
 
-    def _get_multi_value_set(self, pkeys, param, suf='.csv'):
+
+    # 特定の複数のパラメータについて値の集合を得る
+    def _get_multi_value_set(self, pkeys, suf='.csv'):  # param
 
         # フォルダ内のファイル名を全て取得
-        file_list = glob.glob(str(self.folderpath) + '/*.csv')
-        file_list = [os.path.split(f)[1] for f in file_list]
+        file_list = self._get_all_fnames(suf)
+        #file_list = glob.glob(str(self.folderpath) + '/*.csv')
+        #file_list = [os.path.split(f)[1] for f in file_list]
 
+        value_list = []
+        param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+
+        for p in param_list:
+            tmp = []
+            for pk in pkeys:
+                tmp.append(p.pdict[pk])
+            value_list.append(tuple(tmp))
+        """
         value_list = []
         for fn in file_list:
             s = ''
@@ -211,10 +298,33 @@ class SimuFileHandler():
                 tmp = re.findall(f'{pk}=.*?[_.]', fn)[0]
                 s += tmp[len(pk):-1] + '_'
             value_list.append(s)
+        """
 
         # 数値の種類数を取得して返す
         value_set = set(value_list)
         return value_set
+
+
+
+    def _get_num_of_sets_and_attemps(self, pdict, suf='.csv'):
+
+        param = self.tmp_param
+        
+        # フォルダ内のファイル名を全て取得
+        file_list = self._get_all_fnames(suf)
+        param_list = [param.conv_fname_to_param(fn) for fn in file_list]
+
+        # 指定されたパラメータセットを持っている物を抽出
+        param_list = [p for p in param_list if p.include(pdict)]
+
+        # 試行数を計算
+        s = 0
+        for p in param_list:
+            s += self.get_num_data(p)[0]
+
+        return len(param_list), s
+
+        
     
     
     
@@ -224,8 +334,17 @@ class SimuFileHandler():
         print(self)
 
         print()
-        fig = plt.figure(figsize=(6,4))
-        ax = fig.add_subplot(111)
+        file_list = self._get_all_paths(suf='.csv')
+        psnum = len(file_list)
+        dnums = [self._get_num_data_from_path(p)[0] for p in file_list]
+        total = sum(dnums)
+        print(f'# of files: {psnum:d}')
+        print(f'Total attemps: {total:d}')
+
+
+        print()
+        fig = plt.figure(figsize=(10,5))
+        ax1 = fig.add_subplot(121)
         param = self.tmp_param
         pd = param.pdict
         n = len(pd.keys())
@@ -233,30 +352,30 @@ class SimuFileHandler():
 
 
         # パラメータがとる値の種類数をそれぞれ取得して辞書にする
-        div_dict = {k:len(self._get_one_value_set(k, param)) for k in pd.keys()}
+        div_dict = {k:len(self._get_one_value_set(k)) for k in pd.keys()}
 
         # パラメータがとる値の種類数を棒グラフでプロット
         print('# of values that was set to each variable. ')
         x = list(div_dict.keys())
         y = list(div_dict.values())
 
-        ax.set_ylim(1,np.max(y)*1.01)
-        ax.bar(x, y, align="center")
-        ax.set_xticklabels(keys, fontsize=14)
+        ax1.set_ylim(1,np.max(y)*1.01)
+        ax1.bar(x, y, align="center")
+        ax1.set_xticklabels(keys, fontsize=14)
 
         # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        plt.setp(ax1.get_xticklabels(), rotation=45, ha="right",
                  rotation_mode="anchor")
 
-        plt.show()
+        #plt.show()
 
 
 
         
 
         # 2つのパラメータの組み合わせの種類数をヒートマップにする
-        fig = plt.figure(figsize=(5,5))
-        ax = fig.add_subplot(111)
+        #fig = plt.figure(figsize=(5,5))
+        ax2 = fig.add_subplot(122)
 
         data = np.zeros((n, n))
 
@@ -267,29 +386,88 @@ class SimuFileHandler():
                 kx = keys[x]
                 ky = keys[y]
 
-                data[y][x] = len(self._get_multi_value_set((kx, ky), param))
+                data[y][x] = len(self._get_multi_value_set((kx, ky)))
 
 
-        ax.imshow(data, vmin=1)
-        ax.set_xticks(np.arange(len(keys)))
-        ax.set_yticks(np.arange(len(keys)))
+        ax2.imshow(data, vmin=1)
+        ax2.set_xticks(np.arange(len(keys)))
+        ax2.set_yticks(np.arange(len(keys)))
 
-        ax.set_xticklabels(keys, fontsize=14)
-        ax.set_yticklabels(keys, fontsize=14)
+        ax2.set_xticklabels(keys, fontsize=14)
+        ax2.set_yticklabels(keys, fontsize=14)
 
         # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        plt.setp(ax2.get_xticklabels(), rotation=45, ha="right",
                  rotation_mode="anchor")
 
         # Loop over data dimensions and create text annotations.
         for i in range(len(keys)):
             for j in range(len(keys)):
-                text = ax.text(j, i, data[i, j],
+                text = ax2.text(j, i, data[i, j],
                                ha="center", va="center", color="w")
 
         fig.tight_layout()
         plt.show()
 
+
+
+        """
+        # 上位2つのパラメータについて散布図を表示
+        fig = plt.figure(figsize=(5,5))
+        ax = fig.add_subplot(111)
+
+        div_tlist = [(k,v) for k,v in div_dict.items()]
+        tmp = sorted(div_tlist, key=lambda x:x[1], reverse=True)
+        x = tmp[0][0]
+        y = tmp[1][0]
+        self.scatter_two_param(x, y, ax=ax)
+
+        plt.show()
+        """
+
+
+
+
+
+    # 2つのパラメータについて，シミュレーションが行われた
+    # パラメータセットの数と試行数を散布図で表示する
+    def scatter_two_param(self, xkey, ykey, xlim=None, ylim=None):
+        fig = plt.figure(figsize=(6,4.8))
+        ax = fig.add_subplot(111)
+
+        value_list = list(self._get_multi_value_set((xkey, ykey)))
+
+        set_list = []
+        att_list = []
+        for v in value_list:
+            pdict = {xkey:v[0], ykey:v[1]}
+            sets, attemps = self._get_num_of_sets_and_attemps(pdict)
+            set_list.append(sets)
+            att_list.append(attemps)
+
+        xlist = [v[0] for v in value_list]
+        ylist = [v[1] for v in value_list]
+
+        s_arr = np.array(set_list) * 10.
+        c_arr = np.array(att_list)
+
+        ax.scatter(xlist, ylist, s=s_arr, c=c_arr, alpha=0.5)
+        ax.set_xlabel(xkey, fontsize=12)
+        ax.set_ylabel(ykey, fontsize=12)
+
+        if xlim != None:
+            ax.set_xlim(*xlim)
+        if ylim != None:
+            ax.set_ylim(*ylim)
+
+        sm = plt.cm.ScalarMappable(norm=plt.Normalize(
+                                        vmin=np.min(c_arr), 
+                                        vmax=np.max(c_arr)))
+        sm._A = []
+        cbar = fig.colorbar(sm)
+        cbar.set_label('attempts', fontsize=12)
+
+        plt.show()
 
 
 
@@ -389,14 +567,8 @@ class SimuFileHandler():
         if compress:
             self.compress_file(path)
     
-    
-    
-    # ファイルの持つデータ数を返す
-    def get_num_data(self, param): #, foldername='./'):
-        #filename = param.get_filename(".csv")
-        #path = os.path.join(os.getcwd(), foldername, filename)
-        path = str(self.get_filepath(param))
-    
+
+    def _get_num_data_from_path(self, path):
         if os.path.exists(path):
             with open(path, "r") as f:
                 reader = csv.reader(f, lineterminator='\n')
@@ -405,6 +577,26 @@ class SimuFileHandler():
         else:
             #print(f"{filename} does not exist.")
             return 0, 0
+
+    
+    
+    # ファイルの持つデータ数を返す
+    def get_num_data(self, param): #, foldername='./'):
+        #filename = param.get_filename(".csv")
+        #path = os.path.join(os.getcwd(), foldername, filename)
+        path = str(self.get_filepath(param))
+    
+        return self._get_num_data_from_path(path)
+        """
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                reader = csv.reader(f, lineterminator='\n')
+                first = reader.__next__()
+                return int(first[0]), int(first[1])
+        else:
+            #print(f"{filename} does not exist.")
+            return 0, 0
+        """
     
     
     
@@ -430,14 +622,15 @@ class SimuFileHandler():
     def read_and_get_one(self, param, index=0):
         path = str(self.get_filepath(param))
         
-        num = 0
-        n_ele = 0
-        
+        num, n_ele = self.get_num_data(param)
+        if num == 0 and n_ele == 0:
+            return np.zeros(1)
+
         with open(path, "r") as f:
             reader = csv.reader(f, lineterminator='\n')
             first = reader.__next__()
-            num = int(first[0])
-            n_ele = int(first[1])
+            #num = int(first[0])
+            #n_ele = int(first[1])
 
             if num <= index:
                 index = num-1
@@ -472,15 +665,16 @@ class SimuFileHandler():
         #path = os.getcwd() + "/" + foldername + filename
         #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
-        
-        num = 0
-        n_ele = 0
+
+        num, n_ele = self.get_num_data(param)
+        if num == 0 and n_ele == 0:
+            return np.zeros(1)
         
         with open(path, "r") as f:
             reader = csv.reader(f, lineterminator='\n')
             first = reader.__next__()
-            num = int(first[0])
-            n_ele = int(first[1])
+            #num = int(first[0])
+            #n_ele = int(first[1])
             if num <= mx or mx < 0:
                 mx = num
             
@@ -501,7 +695,7 @@ class SimuFileHandler():
             """
             
             return data / count
-    
+        
     
     
     
