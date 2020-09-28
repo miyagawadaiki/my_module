@@ -122,6 +122,13 @@ class SParameter:
         return cp
 
 
+
+    # 値を取得する
+    def get(key):
+        return self.pdict.get(key)
+
+
+
     # オブジェクトの内容を変更する
     def update(self, key, val):
         try:
