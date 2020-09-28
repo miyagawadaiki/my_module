@@ -188,7 +188,9 @@ class ParamIterator(object):
         if self._i == self._array.shape[0]:
             raise StopIteration
         _tparam = self._param.copy()
-        _tparam.pdict[self._p] = self._array[self._i]
+        #_tparam.reset(); print(_tparam)
+        #_tparam.pdict[self._p] = self._array[self._i]
+        _tparam.update(self._p, self._array[self._i])
         self._i += 1
         return _tparam
 
