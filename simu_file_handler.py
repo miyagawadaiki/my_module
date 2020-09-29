@@ -83,7 +83,8 @@ class SParameter:
         for key, val in self.pdict.items():
             l = re.findall(f'{key}=.*?[_]', fname)
             if len(l) == 0:
-                raise Error('The file name is strange or does not have suffix.')
+                raise Exception('The file name is strange or does not have suffix.' +\
+                                ' : '+fname)
             
             tmp = l[0]
             #tmp = re.findall(f'{key}=.*?[_]', fname)[0]
@@ -124,7 +125,7 @@ class SParameter:
 
 
     # 値を取得する
-    def get(key):
+    def get(self, key):
         return self.pdict.get(key)
 
 
