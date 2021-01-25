@@ -578,6 +578,7 @@ class SimuFileHandler():
             self.compress_file(path)
     
 
+
     def _get_num_data_from_path(self, path):
         if os.path.exists(path):
             with open(path, "r") as f:
@@ -668,7 +669,7 @@ class SimuFileHandler():
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
-    def read_and_get_ave(self, param, mx=-1):#, show=False): #, foldername='./'):
+    def read_and_get_ave(self, param, mx=-1, show=False): #, foldername='./'):
         #filename = param.get_filename(".csv")
         #path = foldername + filename
         #filename = param.get_filename(".csv")
@@ -678,6 +679,7 @@ class SimuFileHandler():
 
         num, n_ele = self.get_num_data(param)
         if num == 0 and n_ele == 0:
+            raise ValueError('Empty file:', path)
             return np.zeros(1)
         
         with open(path, "r") as f:
@@ -699,10 +701,10 @@ class SimuFileHandler():
                 data = data + tmpa
                 count += tmp[-1]
             
-            """
+            #"""
             if show:
                 print('attempts:', int(count))
-            """
+            #"""
             
             return data / count
         
@@ -768,6 +770,109 @@ class SimuFileHandler():
 
 
 
+    # 指定個数以下の試行のsample standard deviationを返す    
+    def read_and_get_ssd(self, param, mx=-1):
+
+        # 平均を計算しておく
+        ave = self.read_and_get_ave(param, mx)
+
+
+        path = str(self.get_filepath(param))
+
+        num, n_ele = self.get_num_data(param)
+        if num == 0 and n_ele == 0:
+            raise ValueError('Empty file:', path)
+            return np.zeros(1)
+        
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+            first = reader.__next__()
+            #num = int(first[0])
+            #n_ele = int(first[1])
+            if num <= mx or mx < 0:
+                mx = num
+            
+            data = np.zeros(n_ele)
+            count = 0
+            
+            for row in reader:
+                tmp = list(map(float, row))
+                if count + tmp[-1] > mx:
+                    break
+                tmpa = np.array(tmp[:-1]) * tmp[-1]
+                #data = data + tmpa
+                data = data + np.power(tmpa-ave, 2)
+                count += tmp[-1]
+            
+            """
+            if show:
+                print('attempts:', int(count))
+            """
+            
+            return np.sqrt(data / (count - 1))
+
+
+
+
+    # 指定個数以下の試行の標本標準偏差をパラメータセットごと読み込んでmatrixで返す    
+    def read_and_get_ssd_matrix(self, temp_param, xlabel, ylabel, 
+                                xarray, yarray, mx=-1, show=True):
+        
+        nums = self.get_num_data_matrix(temp_param, xlabel, ylabel, 
+                                        xarray, yarray)#, foldername)
+        min_nd = np.amin(nums[0])
+        min_ele = np.amin(nums[1])
+    
+        if min_nd <= 0:
+            print("It's short for some data files. ")
+            print(nums[0])
+            max_ele = max(np.amax(nums[1]), 1)
+            return np.zeros((max_ele, yarray.shape[0], xarray.shape[0]))
+    
+        if mx < 0:
+            mx = min_nd
+        else:
+            mx = min(mx, min_nd)
+        
+        if show:
+            print('attempts:', mx)
+    
+        ret = np.zeros((min_ele, yarray.shape[0], xarray.shape[0]))
+    
+        #i = yarray.shape[0]-1
+        i = 0
+        for yparam in ParamIterator(temp_param, ylabel, yarray):
+            j = 0
+            for xparam in ParamIterator(yparam, xlabel, xarray):
+                data = self.read_and_get_ssd(xparam, mx)#, show)#, foldername)
+                for k in range(min_ele):
+                    ret[k][i][j] = data[k]
+                j += 1
+            #i -= 1
+            i += 1
+    
+        return ret
+    
+    
+    
+    # ベクトルで返す
+    def get_ssd_1D(self, temp_param, xlabel, xarray, mx=-1, show=True):
+        dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
+        return self.read_and_get_ssd_matrix(temp_param, xlabel, dammy_key, 
+                                            xarray, np.array([dammy_val]), 
+                                            mx, show)[:,0]
+    
+    
+    # 行列で返す
+    def get_ssd_2D(self, temp_param, xlabel, ylabel, 
+                   xarray, yarray, mx=-1, show=True):
+        
+        return self.read_and_get_ssd_matrix(temp_param, xlabel, ylabel, 
+                                            xarray, yarray, mx, show)
+
+
+
+
     # データ生成用の関数を使ってアニメーション用のファイルを作る
     def write_anim_data(self, param, lx, ly, MAX_ITER, 
                         iter_func, gen_func, 
@@ -793,7 +898,7 @@ class SimuFileHandler():
             else:
                 entitle_func_ = entitle_func
         else:
-            entitle_func_ = lambda i: ''
+            entitle_func_ = lambda i: ' '
 
 
         with open(path, "w") as f:
