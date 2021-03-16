@@ -28,17 +28,24 @@ class SParameter:
 
     # パラメータをリセットする．updateのたびに呼ばれる
     def reset(self):
-        pass
+        self.reset_types()
+        self.reset_labels()
     
 
     # 型をリセットする
     def reset_types(self):
-        self.types = {k:type(v) for k,v in self.pdict.items()}
+        #self.types = {k:type(v) for k,v in self.pdict.items()}
+        for k,v in self.pdict.items():
+            if k not in self.types:
+                self.types[k] = type(v)
     
 
     # 図用のラベルをリセットする
     def reset_labels(self):
-        self.labels = {k:k for k,v in self.pdict.items()}
+        #self.labels = {k:k for k,v in self.pdict.items()}
+        for k,v in self.pdict.items():
+            if k not in self.labels:
+                self.labels[k] = k
 
     
     # シードを設定
