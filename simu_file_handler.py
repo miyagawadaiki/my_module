@@ -529,9 +529,6 @@ class SimuFileHandler():
     # そのため，データの追加と言えど一度すべて読み込み，試行回数をインクリメント
     # してから書きこみ直し，末尾に新しい行を追加する処理となる
     def add_results(self, param, results, compress=False, rewrite=False):
-        #filename = param.get_filename(".csv")
-        #path = os.getcwd() + "/" + foldername + filename
-        #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
         
         if rewrite:
@@ -573,6 +570,7 @@ class SimuFileHandler():
     
 
 
+    # ファイルパスからファイルを読み込んでデータ数返す
     def _get_num_data_from_path(self, path):
         if os.path.exists(path):
             with open(path, "r") as f:
@@ -587,21 +585,9 @@ class SimuFileHandler():
     
     # ファイルの持つデータ数を返す
     def get_num_data(self, param): #, foldername='./'):
-        #filename = param.get_filename(".csv")
-        #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
     
         return self._get_num_data_from_path(path)
-        """
-        if os.path.exists(path):
-            with open(path, "r") as f:
-                reader = csv.reader(f, lineterminator='\n')
-                first = reader.__next__()
-                return int(first[0]), int(first[1])
-        else:
-            #print(f"{filename} does not exist.")
-            return 0, 0
-        """
     
     
     
@@ -624,6 +610,45 @@ class SimuFileHandler():
 
 
 
+    # 1パラメータセットのデータを全てリストの形で得る
+    def read_and_get_one_file(self, param, sort=False):
+        path = str(self.get_filepath(param))
+        
+        num, n_ele = self.get_num_data(param)
+        if num == 0 and n_ele == 0:
+            return np.zeros(1)
+
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+            first = reader.__next__()
+
+            data = np.zeros((num, n_ele))
+            count = 0
+            
+            for i, row in enumerate(reader):
+                tmp = list(map(float, row))
+                data[i,:] = np.array(tmp[:-1])
+
+            if sort:
+                for i in range(n_ele):
+                    data = np.sort(data, axis=0)
+
+            return data
+        
+
+
+
+    """
+    # 1パラメータセットのデータを可視化する
+    def show_one_file(self, param, sort=False):
+        data = read_and_get_one_file(param, sort)
+    #"""
+
+
+
+
+
+    # データを1つのみ指定して（or ランダムに）得る
     def read_and_get_one(self, param, index=0):
         path = str(self.get_filepath(param))
         
@@ -653,22 +678,12 @@ class SimuFileHandler():
                     break
                 count += tmp[-1]
             
-            """
-            if show:
-                print('attempts:', int(count))
-            """
-            
             return data
     
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
     def read_and_get_ave(self, param, mx=-1, show=False): #, foldername='./'):
-        #filename = param.get_filename(".csv")
-        #path = foldername + filename
-        #filename = param.get_filename(".csv")
-        #path = os.getcwd() + "/" + foldername + filename
-        #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
 
         num, n_ele = self.get_num_data(param)
@@ -679,8 +694,7 @@ class SimuFileHandler():
         with open(path, "r") as f:
             reader = csv.reader(f, lineterminator='\n')
             first = reader.__next__()
-            #num = int(first[0])
-            #n_ele = int(first[1])
+
             if num <= mx or mx < 0:
                 mx = num
             
@@ -781,8 +795,7 @@ class SimuFileHandler():
         with open(path, "r") as f:
             reader = csv.reader(f, lineterminator='\n')
             first = reader.__next__()
-            #num = int(first[0])
-            #n_ele = int(first[1])
+
             if num <= mx or mx < 0:
                 mx = num
             
@@ -798,10 +811,10 @@ class SimuFileHandler():
                 data = data + np.power(tmpa-ave, 2)
                 count += tmp[-1]
             
-            """
+            #"""
             if show:
                 print('attempts:', int(count))
-            """
+            #"""
             
             return np.sqrt(data / (count - 1))
 
@@ -1036,11 +1049,7 @@ class SimuFileHandler():
     
     # 名前を変更する(間違えた時用)
     def rename_file(self, sparam, dparam): #, foldername='./'):
-        #sfilename = sparam.get_filename(".csv")
-        #spath = os.path.join(os.getcwd(), foldername, sfilename)
         spath = str(self.get_filepath(sparam))
-        #dfilename = dparam.get_filename(".csv")
-        #dpath = os.path.join(os.getcwd(), foldername, dfilename)
         dpath = str(self.get_filepath(dparam))
         if os.path.exists(dpath):
             print('Destination file already exists.')
@@ -1052,7 +1061,8 @@ class SimuFileHandler():
     
     # 結果のファイルを圧縮する
     # 例えば，試行回数が10< となったら，10行分足し合わせて
-    # 10試行のデータとする．行の先頭には10と書いておく
+    # 10試行のデータとする．行の末尾には10と書いておく
+    # 現時点では必要なさそうなので後回し（21/03/16）
     def compress_file(path):
         pass
 
