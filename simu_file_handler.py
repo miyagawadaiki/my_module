@@ -20,24 +20,33 @@ class SParameter:
     def __init__(self, sd=None):
         self.pdict = {}
         self.types = {}
+        self.labels = {}
         self.sd = sd
         
         self.set_seed()
 
 
+    # パラメータをリセットする．updateのたびに呼ばれる
     def reset(self):
-        self.set_types()    
+        pass
+    
+
+    # 型をリセットする
+    def reset_types(self):
+        self.types = {k:type(v) for k,v in self.pdict.items()}
+    
+
+    # 図用のラベルをリセットする
+    def reset_labels(self):
+        self.labels = {k:k for k,v in self.pdict.items()}
 
     
+    # シードを設定
     def set_seed(self):
         if self.sd != None:
             np.random.seed(seed=self.sd)
 
 
-    def set_types(self):
-        self.types = {k:type(v) for k,v in self.pdict.items()}
-    
-    
     # ファイル名の書式を変えたければオーバーライドする
     def __str__(self):
         s = ""
@@ -351,6 +360,7 @@ class SimuFileHandler():
         pd = param.pdict
         n = len(pd.keys())
         keys = list(pd.keys())
+        labels = list(param.labels.values())
 
 
         # パラメータがとる値の種類数をそれぞれ取得して辞書にする
@@ -363,7 +373,7 @@ class SimuFileHandler():
 
         ax1.set_ylim(1,np.max(y)*1.01)
         ax1.bar(x, y, align="center")
-        ax1.set_xticklabels(keys, fontsize=14)
+        ax1.set_xticklabels(labels, fontsize=14)
 
         # Rotate the tick labels and set their alignment.
         plt.setp(ax1.get_xticklabels(), rotation=45, ha="right",
@@ -395,8 +405,8 @@ class SimuFileHandler():
         ax2.set_xticks(np.arange(len(keys)))
         ax2.set_yticks(np.arange(len(keys)))
 
-        ax2.set_xticklabels(keys, fontsize=14)
-        ax2.set_yticklabels(keys, fontsize=14)
+        ax2.set_xticklabels(labels, fontsize=14)
+        ax2.set_yticklabels(labels, fontsize=14)
 
         # Rotate the tick labels and set their alignment.
         plt.setp(ax2.get_xticklabels(), rotation=45, ha="right",
@@ -456,8 +466,8 @@ class SimuFileHandler():
         c_arr = np.array(att_list)
 
         ax.scatter(xlist, ylist, s=s_arr, c=c_arr, alpha=0.5)
-        ax.set_xlabel(xkey, fontsize=12)
-        ax.set_ylabel(ykey, fontsize=12)
+        ax.set_xlabel(self.tmp_param.labels[xkey], fontsize=12)
+        ax.set_ylabel(self.tmp_param.labels[ykey], fontsize=12)
 
         if xlim != None:
             ax.set_xlim(*xlim)
@@ -482,9 +492,6 @@ class SimuFileHandler():
     # そのため，データの追加と言えど一度すべて読み込み，試行回数をインクリメント
     # してから書きこみ直し，末尾に新しい行を追加する処理となる
     def add_one_result(self, param, one_result, compress=False, rewrite=False):
-        #filename = param.get_filename(".csv")
-        #path = os.getcwd() + "/" + foldername + filename
-        #path = os.path.join(os.getcwd(), foldername, filename)
         path = str(self.get_filepath(param))
         
         if rewrite:
