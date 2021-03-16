@@ -266,7 +266,7 @@ class SimuFileHandler():
 
 
 
-    def _makeup_param_list(self):
+    def _makeup_param_list(self, suf='.csv'):
         # フォルダ内のファイル名を全て取得
         print('Reading files...')
         file_list = self._get_all_fnames(suf)
@@ -288,7 +288,7 @@ class SimuFileHandler():
         # パラメータキーの直後にある数値（あるいは文字列）を抽出
         #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
         if self.param_list is None:
-            self._makeup_param_list()
+            self._makeup_param_list(suf)
 
         value_list = [p.pdict[pkey] for p in self.param_list]
         #value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
@@ -311,7 +311,7 @@ class SimuFileHandler():
 
         #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
         if self.param_list is None:
-            self._makeup_param_list()
+            self._makeup_param_list(suf)
 
         value_list = []
         for p in self.param_list:
@@ -343,7 +343,7 @@ class SimuFileHandler():
         #file_list = self._get_all_fnames(suf)
         #param_list = [param.conv_fname_to_param(fn) for fn in file_list]
         if self.param_list is None:
-            self._makeup_param_list()
+            self._makeup_param_list(suf)
 
         # 指定されたパラメータセットを持っている物を抽出
         p_list = [p for p in self.param_list if p.include(pdict)]
