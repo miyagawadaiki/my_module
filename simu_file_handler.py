@@ -207,8 +207,7 @@ class SimuFileHandler():
         self.tmp_param = tmp_param
         #self.foldername = foldername
         self.exe_file = sys.argv[0]#; print(self.exe_file)
-        self.param_list = None  # ファイルをSParameterのサブクラス型に変換したもののリスト
-        
+
         if not os.path.exists(str(self.folderpath)):
             print(f'Make directory: {self.folderpath}')
             os.mkdir(str(self.folderpath))
@@ -227,7 +226,11 @@ class SimuFileHandler():
                 f.write('Initialized ('+str(datetime.datetime.now())+')')
             """
 
-        self._makeup_param_list()
+        self.path_list  = None  # ファイルパスのリスト
+        self.fname_list = None  # ファイル名のリスト
+        self.param_list = None  # ファイルをSParameterのサブクラス型に変換したもののリスト
+        
+        self._makeup_lists()
             
 
 
@@ -266,12 +269,16 @@ class SimuFileHandler():
 
 
 
-    def _makeup_param_list(self, suf='.csv'):
-        # フォルダ内のファイル名を全て取得
+    def _makeup_lists(self, suf='.csv'):
         print('Reading files...')
-        file_list = self._get_all_fnames(suf)
 
-        self.param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        # フォルダ内のファイルパスを全て取得
+        self.path_list = self._get_all_paths(suf)
+
+        # フォルダ内のファイル名を全て取得
+        self.fname_list = self._get_all_fnames(suf)
+
+        self.param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in fname_list]
         print('Completed')
 
     
@@ -280,20 +287,8 @@ class SimuFileHandler():
     # 特定の1つのパラメータについてデータになっている値の集合を得る（その後，その種類数取得などに使う）
     def _get_one_value_set(self, pkey, suf='.csv'):  # param
 
-        # フォルダ内のファイル名を全て取得
-        #file_list = self._get_all_fnames(suf)
-        #file_list = glob.glob(str(self.folderpath) + '/*.csv')
-        #file_list = [os.path.split(f)[1] for f in file_list]
-
-        # パラメータキーの直後にある数値（あるいは文字列）を抽出
-        #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
-        if self.param_list is None:
-            self._makeup_param_list(suf)
-
+        # param_listから値を抽出
         value_list = [p.pdict[pkey] for p in self.param_list]
-        #value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
-        #value_list = [s[len(pkey):-1] for s in value_list]
-        # print(value_list)   ## for debug
 
         # 数値の種類数を取得して返す
         value_set = set(value_list)
@@ -304,30 +299,12 @@ class SimuFileHandler():
     # 特定の複数のパラメータについて値の集合を得る
     def _get_multi_value_set(self, pkeys, suf='.csv'):  # param
 
-        # フォルダ内のファイル名を全て取得
-        #file_list = self._get_all_fnames(suf)
-        #file_list = glob.glob(str(self.folderpath) + '/*.csv')
-        #file_list = [os.path.split(f)[1] for f in file_list]
-
-        #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
-        if self.param_list is None:
-            self._makeup_param_list(suf)
-
         value_list = []
         for p in self.param_list:
             tmp = []
             for pk in pkeys:
                 tmp.append(p.pdict[pk])
             value_list.append(tuple(tmp))
-        """
-        value_list = []
-        for fn in file_list:
-            s = ''
-            for pk in pkeys:
-                tmp = re.findall(f'{pk}=.*?[_.]', fn)[0]
-                s += tmp[len(pk):-1] + '_'
-            value_list.append(s)
-        """
 
         # 数値の種類数を取得して返す
         value_set = set(value_list)
@@ -336,14 +313,6 @@ class SimuFileHandler():
 
 
     def _get_num_of_sets_and_attemps(self, pdict, suf='.csv'):
-
-        #param = self.tmp_param
-        
-        # フォルダ内のファイル名を全て取得
-        #file_list = self._get_all_fnames(suf)
-        #param_list = [param.conv_fname_to_param(fn) for fn in file_list]
-        if self.param_list is None:
-            self._makeup_param_list(suf)
 
         # 指定されたパラメータセットを持っている物を抽出
         p_list = [p for p in self.param_list if p.include(pdict)]
@@ -361,13 +330,15 @@ class SimuFileHandler():
     
     
     # 現在フォルダー内に保管されているデータについて概要を表示する
-    def summary(self):
+    def summary(self, update=False):
         print(self)
 
+        if update:
+            self._makeup_lists()
+
         print()
-        file_list = self._get_all_paths(suf='.csv')
-        psnum = len(file_list)
-        dnums = [self._get_num_data_from_path(p)[0] for p in file_list]
+        psnum = len(self.path_list)
+        dnums = [self._get_num_data_from_path(p)[0] for p in self.path_list]
         total = sum(dnums)
         print(f'# of files: {psnum:d}')
         print(f'Total attemps: {total:d}')
@@ -462,11 +433,12 @@ class SimuFileHandler():
 
     # 2つのパラメータについて，シミュレーションが行われた
     # パラメータセットの数と試行数を散布図で表示する
-    def scatter_two_param(self, xkey, ykey, xlim=None, ylim=None):
+    def scatter_two_param(self, xkey, ykey, xlim=None, ylim=None, update=False):
         fig = plt.figure(figsize=(6,4.8))
         ax = fig.add_subplot(111)
 
-        self._makeup_param_list()
+        if update:
+            self._makeup_lists()
         value_list = list(self._get_multi_value_set((xkey, ykey)))
 
         set_list = []
