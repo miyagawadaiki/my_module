@@ -646,7 +646,7 @@ class SimuFileHandler():
             if num <= index:
                 index = num-1
             elif index < 0:
-                index = np.randint(num)
+                index = np.random.randint(num)
                 
             
             data = np.zeros(n_ele)
