@@ -367,7 +367,7 @@ class SimuFileHandler():
         pd = param.pdict
         n = len(pd.keys())
         keys = list(pd.keys())
-        labels = list(param.labels.values())
+        labels = [self.tmp_param.labels[k] for k in keys]
 
 
         # パラメータがとる値の種類数をそれぞれ取得して辞書にする
