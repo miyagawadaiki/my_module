@@ -207,6 +207,7 @@ class SimuFileHandler():
         self.tmp_param = tmp_param
         #self.foldername = foldername
         self.exe_file = sys.argv[0]#; print(self.exe_file)
+        self.param_list = None  # ファイルをSParameterのサブクラス型に変換したもののリスト
         
         if not os.path.exists(str(self.folderpath)):
             print(f'Make directory: {self.folderpath}')
@@ -225,6 +226,8 @@ class SimuFileHandler():
             with open(str(log_path / 'data.log'), 'w') as f:
                 f.write('Initialized ('+str(datetime.datetime.now())+')')
             """
+
+        self._makeup_param_list()
             
 
 
@@ -260,6 +263,17 @@ class SimuFileHandler():
         file_list = [os.path.split(f)[1] for f in file_list]
 
         return file_list
+
+
+
+    def _makeup_param_list(self):
+        # フォルダ内のファイル名を全て取得
+        print('Reading files...')
+        file_list = self._get_all_fnames(suf)
+
+        self.param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        print('Completed')
+
     
     
     
@@ -267,13 +281,16 @@ class SimuFileHandler():
     def _get_one_value_set(self, pkey, suf='.csv'):  # param
 
         # フォルダ内のファイル名を全て取得
-        file_list = self._get_all_fnames(suf)
+        #file_list = self._get_all_fnames(suf)
         #file_list = glob.glob(str(self.folderpath) + '/*.csv')
         #file_list = [os.path.split(f)[1] for f in file_list]
 
         # パラメータキーの直後にある数値（あるいは文字列）を抽出
-        param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
-        value_list = [p.pdict[pkey] for p in param_list]
+        #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        if self.param_list is None:
+            self._makeup_param_list()
+
+        value_list = [p.pdict[pkey] for p in self.param_list]
         #value_list = [re.findall(f'{pkey}=.*?[_.]', fn)[0] for fn in file_list]
         #value_list = [s[len(pkey):-1] for s in value_list]
         # print(value_list)   ## for debug
@@ -288,14 +305,16 @@ class SimuFileHandler():
     def _get_multi_value_set(self, pkeys, suf='.csv'):  # param
 
         # フォルダ内のファイル名を全て取得
-        file_list = self._get_all_fnames(suf)
+        #file_list = self._get_all_fnames(suf)
         #file_list = glob.glob(str(self.folderpath) + '/*.csv')
         #file_list = [os.path.split(f)[1] for f in file_list]
 
-        value_list = []
-        param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        #param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in file_list]
+        if self.param_list is None:
+            self._makeup_param_list()
 
-        for p in param_list:
+        value_list = []
+        for p in self.param_list:
             tmp = []
             for pk in pkeys:
                 tmp.append(p.pdict[pk])
@@ -318,21 +337,23 @@ class SimuFileHandler():
 
     def _get_num_of_sets_and_attemps(self, pdict, suf='.csv'):
 
-        param = self.tmp_param
+        #param = self.tmp_param
         
         # フォルダ内のファイル名を全て取得
-        file_list = self._get_all_fnames(suf)
-        param_list = [param.conv_fname_to_param(fn) for fn in file_list]
+        #file_list = self._get_all_fnames(suf)
+        #param_list = [param.conv_fname_to_param(fn) for fn in file_list]
+        if self.param_list is None:
+            self._makeup_param_list()
 
         # 指定されたパラメータセットを持っている物を抽出
-        param_list = [p for p in param_list if p.include(pdict)]
+        p_list = [p for p in self.param_list if p.include(pdict)]
 
         # 試行数を計算
         s = 0
-        for p in param_list:
+        for p in p_list:
             s += self.get_num_data(p)[0]
 
-        return len(param_list), s
+        return len(p_list), s
 
         
     
@@ -445,6 +466,7 @@ class SimuFileHandler():
         fig = plt.figure(figsize=(6,4.8))
         ax = fig.add_subplot(111)
 
+        self._makeup_param_list()
         value_list = list(self._get_multi_value_set((xkey, ykey)))
 
         set_list = []
