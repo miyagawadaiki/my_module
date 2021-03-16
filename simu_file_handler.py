@@ -278,7 +278,7 @@ class SimuFileHandler():
         # フォルダ内のファイル名を全て取得
         self.fname_list = self._get_all_fnames(suf)
 
-        self.param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in fname_list]
+        self.param_list = [self.tmp_param.conv_fname_to_param(fn) for fn in self.fname_list]
         print('Completed')
 
     
