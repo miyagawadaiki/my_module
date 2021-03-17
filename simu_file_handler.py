@@ -793,7 +793,7 @@ class SimuFileHandler():
 
 
     # 指定個数以下の試行のsample standard deviationを返す    
-    def read_and_get_ssd(self, param, mx=-1):
+    def read_and_get_ssd(self, param, mx=-1, show=False):
 
         # 平均を計算しておく
         ave = self.read_and_get_ave(param, mx)
