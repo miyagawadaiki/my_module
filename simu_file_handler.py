@@ -356,7 +356,7 @@ class SimuFileHandler():
         psnum = len(self.path_list)
         dnums = [self._get_num_data_from_path(p)[0] for p in self.path_list]
         total = sum(dnums)
-        print(f'# of files: {psnum:d}')
+        print(f'#files: {psnum:d}')
         print(f'Total attemps: {total:d}')
 
 
@@ -374,7 +374,7 @@ class SimuFileHandler():
         div_dict = {k:len(self._get_one_value_set(k)) for k in pd.keys()}
 
         # パラメータがとる値の種類数を棒グラフでプロット
-        print('# of values that was set to each variable. ')
+        print('#values that was set to each variable. ')
         x = list(div_dict.keys())
         y = list(div_dict.values())
 
@@ -486,7 +486,7 @@ class SimuFileHandler():
                                         vmax=np.max(c_arr)))
         sm._A = []
         cbar = fig.colorbar(sm)
-        cbar.set_label('attempts', fontsize=12)
+        cbar.set_label('#attempts', fontsize=12)
 
         plt.show()
 
