@@ -54,10 +54,44 @@ class SParameter:
             np.random.seed(seed=self.sd)
 
 
+
+    # パラメータを一つ登録
+    def register(self, name, value, vtype=None, label=None):
+        if vtype is None:
+            self.pdict[name] = value
+            self.types[name] = type(value)
+
+        elif vtype is int:
+            self.pdict[name] = int(value)
+            self.types[name] = int
+        elif vtype is float:
+            self.pdict[name] = float(value)
+            self.types[name] = float
+        else:
+            self.pdict[name] = str(value)
+            self.types[name] = str
+
+
+        if label is None:
+            self.labels[name] = name
+        else:
+            self.labels[name] = label
+
+
+
+
     # ファイル名の書式を変えたければオーバーライドする
-    def __str__(self):
+    def __str__(self, keys=None):
+
+        if keys is None:
+            keys = list(self.pdict.keys())
+
         s = ""
         for k,v in self.pdict.items():
+
+            if not k in keys:
+                continue
+
             if len(self.types) > 0:
                 if self.types[k] is int:
                     s += f"{k:s}={v:d}_"
@@ -301,10 +335,24 @@ class SimuFileHandler():
     
     
     # 特定の1つのパラメータについてデータになっている値の集合を得る（その後，その種類数取得などに使う）
-    def _get_one_value_set(self, pkey, suf='.csv'):  # param
+    def _get_one_value_set(self, pkey, template=None, suf='.csv'):  # param
 
         # param_listから値を抽出
-        value_list = [p.pdict[pkey] for p in self.param_list]
+        if type(template) is dict:  # 辞書形式でその他パラメータの指定があった場合
+            value_list = [p.pdict[pkey] for p in self.param_list if p.include(temp)]
+
+        elif isinstance(template, SParameter):  # SParameterのサブクラス形式で指定
+            pd = {k:v for k,v in template.pdict.items() if k != pkey}
+            value_list = [p.pdict[pkey] for p in self.param_list if p.include(pd)]
+
+        elif temp is None:      # 指定なし
+            value_list = [p.pdict[pkey] for p in self.param_list]
+
+        else:                   # 辞書、SParameterのサブクラス以外で指定
+            raise ValueError('You can set a dictionary or a instance of the class whose parent is SParameter.')
+
+
+
 
         # 数値の種類数を取得して返す
         value_set = set(value_list)
@@ -313,14 +361,40 @@ class SimuFileHandler():
 
 
     # 特定の複数のパラメータについて値の集合を得る
-    def _get_multi_value_set(self, pkeys, suf='.csv'):  # param
+    def _get_multi_value_set(self, pkeys, template=None, suf='.csv'):  # param
 
         value_list = []
-        for p in self.param_list:
-            tmp = []
-            for pk in pkeys:
-                tmp.append(p.pdict[pk])
-            value_list.append(tuple(tmp))
+
+        # param_listから値を抽出
+        if type(template) is dict:  # 辞書形式でその他パラメータの指定があった場合
+            for p in self.param_list:
+                if not p.include(template):
+                    continue
+                tmp = []
+                for pk in pkeys:
+                    tmp.append(p.pdict[pk])
+                value_list.append(tuple(tmp))
+
+        elif isinstance(temp, SParameter):  # SParameterのサブクラス形式で指定
+            pd = {k:v for k,v in template.pdict.items() if not k in pkey}
+            for p in self.param_list:
+                if not p.include(pd):
+                    continue
+                tmp = []
+                for pk in pkeys:
+                    tmp.append(p.pdict[pk])
+                value_list.append(tuple(tmp))
+
+        elif template is None:      # 指定なし
+            for p in self.param_list:
+                tmp = []
+                for pk in pkeys:
+                    tmp.append(p.pdict[pk])
+                value_list.append(tuple(tmp))
+
+        else:                   # 辞書、SParameterのサブクラス以外で指定
+            raise ValueError('You can set a dictionary or a instance of the class whose parent is SParameter.')
+
 
         # 数値の種類数を取得して返す
         value_set = set(value_list)
@@ -450,13 +524,13 @@ class SimuFileHandler():
 
     # 2つのパラメータについて，シミュレーションが行われた
     # パラメータセットの数と試行数を散布図で表示する
-    def scatter_two_param(self, xkey, ykey, xlim=None, ylim=None, update=False):
+    def scatter_two_param(self, xkey, ykey, template=None, xlim=None, ylim=None, update=False):
         fig = plt.figure(figsize=(6,4.8))
         ax = fig.add_subplot(111)
 
         if update:
             self._makeup_lists()
-        value_list = list(self._get_multi_value_set((xkey, ykey)))
+        value_list = list(self._get_multi_value_set((xkey, ykey), template))
 
         set_list = []
         att_list = []
