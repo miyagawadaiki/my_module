@@ -339,13 +339,13 @@ class SimuFileHandler():
 
         # param_listから値を抽出
         if type(template) is dict:  # 辞書形式でその他パラメータの指定があった場合
-            value_list = [p.pdict[pkey] for p in self.param_list if p.include(temp)]
+            value_list = [p.pdict[pkey] for p in self.param_list if p.include(template)]
 
         elif isinstance(template, SParameter):  # SParameterのサブクラス形式で指定
             pd = {k:v for k,v in template.pdict.items() if k != pkey}
             value_list = [p.pdict[pkey] for p in self.param_list if p.include(pd)]
 
-        elif temp is None:      # 指定なし
+        elif template is None:      # 指定なし
             value_list = [p.pdict[pkey] for p in self.param_list]
 
         else:                   # 辞書、SParameterのサブクラス以外で指定
@@ -375,7 +375,7 @@ class SimuFileHandler():
                     tmp.append(p.pdict[pk])
                 value_list.append(tuple(tmp))
 
-        elif isinstance(temp, SParameter):  # SParameterのサブクラス形式で指定
+        elif isinstance(template, SParameter):  # SParameterのサブクラス形式で指定
             pd = {k:v for k,v in template.pdict.items() if not k in pkey}
             for p in self.param_list:
                 if not p.include(pd):
@@ -767,6 +767,33 @@ class SimuFileHandler():
                 count += tmp[-1]
             
             return data
+
+
+    def DataGenerator(self, param, mx=-1, show=False):
+        path = str(self.get_filepath(param))
+        
+        num, n_ele = self.get_num_data(param)
+        if num == 0 and n_ele == 0:
+            print('The specified file does not exist. ')
+            raise StopIteration()
+
+        mx = mx if mx > 0 else num
+
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+            first = reader.__next__()
+
+            data = np.zeros(n_ele)
+
+            for i, row in enumerate(reader):
+                if i == mx:
+                    break
+                tmp = list(map(float, row))
+                data = np.array(tmp[:-1]) * tmp[-1]
+                yield data
+
+
+
     
     
     
