@@ -71,7 +71,6 @@ class SParameter:
             self.types[name] = str
 
 
-
         if label is None:
             self.labels[name] = name
         else:
