@@ -248,6 +248,27 @@ class ParamIterator(object):
         return _tparam
 
 
+class MultiParamIterator(object):
+    def __init__(self, param, keys, arrays):
+        self._param = param
+        self._arrays = arrays
+        self._i = 0
+        self._keys = keys
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        _tparam = self._param.copy()
+        try:
+            _tdict = {k:arr[self._i] for k, arr in zip(self._keys, self._arrays)}
+            _tparam.update_from_dict(_tdict)
+            self._i += 1
+        except IndexError:
+            raise StopIteration
+
+        return _tparam
+
 
 
 
@@ -288,8 +309,9 @@ class SimuFileHandler():
 
 
     def __str__(self):
-        c = pathlib.Path.cwd()
-        p = self.folderpath.relative_to(c)
+        #c = pathlib.Path.cwd()
+        #p = self.folderpath.relative_to(c)
+        p = self.folderpath
         s = f'Folder: {p}' + '\n'
         s += f'Parameter: {str(list(self.tmp_param.pdict.keys()))}'
         return s
@@ -823,7 +845,7 @@ class SimuFileHandler():
                 _to = num
             
             data = np.zeros(n_ele)
-            count = 0
+            #count = 0
 
             for i, row in enumerate(reader):
                 tmp = list(map(float, row))
@@ -843,10 +865,10 @@ class SimuFileHandler():
             
             #"""
             if show:
-                print('attempts:', int(count))
+                print('attempts:', mx)
             #"""
             
-            return data / count
+            return data / mx
         
     
     
@@ -939,7 +961,7 @@ class SimuFileHandler():
                 _to = num
 
             data = np.zeros(n_ele)
-            count = 0
+            #count = 0
             
             for i, row in enumerate(reader):
                 tmp = list(map(float, row))
@@ -961,10 +983,10 @@ class SimuFileHandler():
             
             #"""
             if show:
-                print('attempts:', int(count))
+                print('attempts:', mx)
             #"""
             
-            return np.sqrt(data / (count - 1))
+            return np.sqrt(data / (mx - 1))
 
 
 
