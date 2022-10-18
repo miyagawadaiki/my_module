@@ -26,14 +26,11 @@ class SParameter:
         self.set_seed()
 
 
-
     # パラメータをリセットする．updateのたびに呼ばれる
     def reset(self):
         self.reset_types()
         self.reset_labels()
     
-
-
     # 型をリセットする
     def reset_types(self):
         #self.types = {k:type(v) for k,v in self.pdict.items()}
@@ -42,16 +39,14 @@ class SParameter:
                 self.types[k] = type(v)
     
 
-
     # 図用のラベルをリセットする
     def reset_labels(self):
         #self.labels = {k:k for k,v in self.pdict.items()}
         for k,v in self.pdict.items():
             if k not in self.labels:
                 self.labels[k] = k
+
     
-
-
     # シードを設定
     def set_seed(self):
         if self.sd != None:
@@ -64,6 +59,7 @@ class SParameter:
         if vtype is None:
             self.pdict[name] = value
             self.types[name] = type(value)
+
         elif vtype is int:
             self.pdict[name] = int(value)
             self.types[name] = int
@@ -73,6 +69,9 @@ class SParameter:
         else:
             self.pdict[name] = str(value)
             self.types[name] = str
+
+
+
         if label is None:
             self.labels[name] = name
         else:
@@ -82,12 +81,16 @@ class SParameter:
 
     # ファイル名の書式を変えたければオーバーライドする
     def __str__(self, keys=None):
+
         if keys is None:
             keys = list(self.pdict.keys())
+
         s = ""
         for k,v in self.pdict.items():
+
             if not k in keys:
                 continue
+
             if len(self.types) > 0:
                 if self.types[k] is int:
                     s += f"{k:s}={v:d}_"
@@ -135,9 +138,10 @@ class SParameter:
             #tmp = re.findall(f'{key}=.*?[_]', fname)[0]
             #print(tmp)
             value_str = tmp[len(key)+1:-1]
+            """
             if len(self.types) > 0:
                 if self.types[key] is int:
-                    v = int(value_str)
+                    v = int(value_str, 0)
                 elif self.types[key] is float:
                     v = float(value_str)
                 else:
@@ -145,12 +149,14 @@ class SParameter:
                     
             else:
                 if isinstance(val, int):
-                    v = int(value_str)
+                    v = int(value_str, 0)
                 elif isinstance(val, float):
                     v = float(value_str)
                 else:
                     v = value_str
             new_dict[key] = v
+            """
+            new_dict[key] = value_str
         
         cp.update_from_dict(new_dict)
         return cp
@@ -178,7 +184,7 @@ class SParameter:
         try:
             v = self.pdict[key]
             if isinstance(v, int):
-                v = int(val)
+                v = int(val, 0)
             elif isinstance(v, float):
                 v = float(val)
             else:
@@ -794,7 +800,7 @@ class SimuFileHandler():
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
-    def read_and_get_ave(self, param, mx=-1, show=False): #, foldername='./'):
+    def read_and_get_ave(self, param, mx=-1, older=True, show=False): #, foldername='./'):
         path = str(self.get_filepath(param))
 
         num, n_ele = self.get_num_data(param)
@@ -808,10 +814,24 @@ class SimuFileHandler():
 
             if num <= mx or mx < 0:
                 mx = num
+
+            if older == True:
+                _from = 0
+                _to = mx
+            else:
+                _from = num - mx
+                _to = num
             
             data = np.zeros(n_ele)
             count = 0
+
+            for i, row in enumerate(reader):
+                tmp = list(map(float, row))
+                if _from <= i < _to:
+                    tmpa = np.array(tmp[:-1]) * tmp[-1]
+                    data = data + tmpa
             
+            """
             for row in reader:
                 tmp = list(map(float, row))
                 if count + tmp[-1] > mx:
@@ -819,6 +839,7 @@ class SimuFileHandler():
                 tmpa = np.array(tmp[:-1]) * tmp[-1]
                 data = data + tmpa
                 count += tmp[-1]
+            """
             
             #"""
             if show:
@@ -832,7 +853,7 @@ class SimuFileHandler():
     
     # 指定個数以下の施行を平均したものをパラメータセットごと読み込んでmatrixで返す    
     def read_and_get_ave_matrix(self, temp_param, xlabel, ylabel, 
-                                xarray, yarray, mx=-1, show=True):
+                                xarray, yarray, mx=-1, older=True, show=True):
         
         nums = self.get_num_data_matrix(temp_param, xlabel, ylabel, 
                                         xarray, yarray)#, foldername)
@@ -860,7 +881,7 @@ class SimuFileHandler():
         for yparam in ParamIterator(temp_param, ylabel, yarray):
             j = 0
             for xparam in ParamIterator(yparam, xlabel, xarray):
-                data = self.read_and_get_ave(xparam, mx)#, show)#, foldername)
+                data = self.read_and_get_ave(xparam, mx, older)#, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
                 j += 1
@@ -872,28 +893,28 @@ class SimuFileHandler():
     
     
     # ベクトルで返す
-    def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, show=True):
+    def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True):
         dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
         return self.read_and_get_ave_matrix(temp_param, xlabel, dammy_key, 
                                             xarray, np.array([dammy_val]), 
-                                            mx, show)[:,0]
+                                            mx, older, show)[:,0]
     
     
     # 行列で返す
     def get_ave_2D(self, temp_param, xlabel, ylabel, 
-                   xarray, yarray, mx=-1, show=True):
+                   xarray, yarray, mx=-1, older=True, show=True):
         
         return self.read_and_get_ave_matrix(temp_param, xlabel, ylabel, 
-                                            xarray, yarray, mx, show)
+                                            xarray, yarray, mx, older, show)
 
 
 
 
     # 指定個数以下の試行のsample standard deviationを返す    
-    def read_and_get_ssd(self, param, mx=-1, show=False):
+    def read_and_get_ssd(self, param, mx=-1, older=True, show=False):
 
         # 平均を計算しておく
-        ave = self.read_and_get_ave(param, mx)
+        ave = self.read_and_get_ave(param, mx, older)
 
 
         path = str(self.get_filepath(param))
@@ -910,9 +931,24 @@ class SimuFileHandler():
             if num <= mx or mx < 0:
                 mx = num
             
+            if older == True:
+                _from = 0
+                _to = mx
+            else:
+                _from = num - mx
+                _to = num
+
             data = np.zeros(n_ele)
             count = 0
             
+            for i, row in enumerate(reader):
+                tmp = list(map(float, row))
+                if _from <= i < _to:
+                    tmpa = np.array(tmp[:-1]) * tmp[-1]
+                    data = data + np.power(tmpa-ave, 2)
+
+
+            """
             for row in reader:
                 tmp = list(map(float, row))
                 if count + tmp[-1] > mx:
@@ -921,6 +957,7 @@ class SimuFileHandler():
                 #data = data + tmpa
                 data = data + np.power(tmpa-ave, 2)
                 count += tmp[-1]
+            """
             
             #"""
             if show:
@@ -934,7 +971,7 @@ class SimuFileHandler():
 
     # 指定個数以下の試行の標本標準偏差をパラメータセットごと読み込んでmatrixで返す    
     def read_and_get_ssd_matrix(self, temp_param, xlabel, ylabel, 
-                                xarray, yarray, mx=-1, show=True):
+                                xarray, yarray, mx=-1, older=True, show=True):
         
         nums = self.get_num_data_matrix(temp_param, xlabel, ylabel, 
                                         xarray, yarray)#, foldername)
@@ -962,7 +999,7 @@ class SimuFileHandler():
         for yparam in ParamIterator(temp_param, ylabel, yarray):
             j = 0
             for xparam in ParamIterator(yparam, xlabel, xarray):
-                data = self.read_and_get_ssd(xparam, mx)#, show)#, foldername)
+                data = self.read_and_get_ssd(xparam, mx, older)#, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
                 j += 1
@@ -974,29 +1011,31 @@ class SimuFileHandler():
     
     
     # ベクトルで返す
-    def get_ssd_1D(self, temp_param, xlabel, xarray, mx=-1, show=True):
+    def get_ssd_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True):
         dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
         return self.read_and_get_ssd_matrix(temp_param, xlabel, dammy_key, 
                                             xarray, np.array([dammy_val]), 
-                                            mx, show)[:,0]
+                                            mx, older, show)[:,0]
     
     
     # 行列で返す
     def get_ssd_2D(self, temp_param, xlabel, ylabel, 
-                   xarray, yarray, mx=-1, show=True):
+                   xarray, yarray, mx=-1, older=True, show=True):
         
         return self.read_and_get_ssd_matrix(temp_param, xlabel, ylabel, 
-                                            xarray, yarray, mx, show)
+                                            xarray, yarray, mx, older, show)
 
 
 
 
     # データ生成用の関数を使ってアニメーション用のファイルを作る
-    def write_anim_data(self, param, lx, ly, MAX_ITER, 
+    def write_anim_data(self, param, MAX_ITER, 
                         iter_func, gen_func, 
                         iter_args=None, gen_args=None, 
                         ini_func=None, ini_args=None,
-                        entitle_func=None, entitle_args=None):
+                        entitle_func=None, entitle_args=None, 
+                        #shape_func=None
+                        ):
 
         path = str(self.get_filepath(param, suf='.ani'))
 
@@ -1018,10 +1057,16 @@ class SimuFileHandler():
         else:
             entitle_func_ = lambda i: ' '
 
+        """
+        if shape_func != None:
+            shape_func_ = shape_func
+        else:
+            shape_func_ = lambda d: d.flatten()
+        """
+
 
         with open(path, "w") as f:
             writer = csv.writer(f, lineterminator='\n')
-            writer.writerow([lx,ly,MAX_ITER])   # [データの横幅, 縦幅, ステップ数]
 
             if ini_func != None:
                 if ini_args != None:
@@ -1032,8 +1077,12 @@ class SimuFileHandler():
                 ini_func_()
 
             data = gen_func_()
+
+
+            writer.writerow([MAX_ITER] + list(data.shape))   # [データの横幅, 縦幅, ステップ数]
+
             writer.writerow([entitle_func_(0)])
-            writer.writerows(data)
+            writer.writerow(data.flatten())
             
 
             for i in range(MAX_ITER):
@@ -1041,13 +1090,53 @@ class SimuFileHandler():
                 data = gen_func_()
 
                 writer.writerow([entitle_func_(i+1)])
-                writer.writerows(data)
+                writer.writerow(data.flatten())
+                #writer.writerows(data)
+
+
+    def get_anim_data_range(self, param, min_func, max_func, dtype=float, is_all=False, index=-1):
+        path = str(self.get_filepath(param, suf='.ani'))
+
+        with open(path, "r") as f:
+            reader = csv.reader(f, lineterminator='\n')
+
+            first = reader.__next__()
+            MAX_ITER = int(first[0])
+            data_shape = tuple(map(int, first[1:]))
+
+
+            title_text = reader.__next__()
+            row = reader.__next__()
+            tmp = np.array(list(map(dtype, row)))
+            data = tmp.reshape(*data_shape)
+            
+            mn = min_func(data)
+            mx = max_func(data)
+            if is_all == False and index == 0:
+                return mn, mx
+            
+            for i in range(1, MAX_ITER+1):
+                title_text = reader.__next__()
+                row = reader.__next__()
+                tmp = np.array(list(map(dtype, row)))
+                data = tmp.reshape(*data_shape)
+
+                mn_ = min_func(data)
+                mx_ = max_func(data)
+                if is_all:
+                    mn = np.stack([mn, mn_]).min(axis=0)
+                    mx = np.stack([mx, mx_]).max(axis=0)
+                elif index == ((MAX_ITER+1 + i) % (MAX_ITER+1)):
+                    return mn_, mx_
+
+            return mn, mx
 
 
 
 
     # animation用のimsを作成する（描画用関数を用いて）
-    def read_anim_data(self, fig, param, draw_func, draw_args=None, dtype=float, interval=200, frames=None):
+    def read_anim_data(self, fig, param, draw_func, draw_args=None, 
+                       dtype=float, interval=200, frames=None):
 
         path = str(self.get_filepath(param, suf='.ani'))
 
@@ -1055,6 +1144,8 @@ class SimuFileHandler():
             draw_func_ = lambda data, i, text: draw_func(data, i, text, *draw_args)
         else:
             draw_func_ = draw_func
+
+
         
         #fig = plt.figure()
         ims = []
@@ -1063,23 +1154,28 @@ class SimuFileHandler():
             reader = csv.reader(f, lineterminator='\n')
 
             first = reader.__next__()
-            lx = int(first[0])
-            ly = int(first[1])
-            MAX_ITER = int(first[2])
+            MAX_ITER = int(first[0])
+            data_shape = tuple(map(int, first[1:]))
+            #lx = int(first[0])
+            #ly = int(first[1])
 
             if frames != None and MAX_ITER > frames:
                 MAX_ITER = frames
             
             for i in range(MAX_ITER+1):
 
-                data = np.zeros((ly,lx))
+                #data = np.zeros((ly,lx))
                 title_text = reader.__next__()
-
+                row = reader.__next__()
+                tmp = np.array(list(map(dtype, row)))
+                data = tmp.reshape(*data_shape)
+                """
                 for j in range(ly):
                     row = reader.__next__()
                     tmp = np.array(list(map(dtype, row)))
                     
                     data[j,:] = tmp
+                """
 
                 ims.append(draw_func_(data, i, title_text[0]))
 
