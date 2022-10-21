@@ -71,6 +71,7 @@ class SParameter:
             self.types[name] = str
 
 
+
         if label is None:
             self.labels[name] = name
         else:
@@ -183,7 +184,7 @@ class SParameter:
         try:
             v = self.pdict[key]
             if isinstance(v, int):
-                v = int(val)
+                v = int(val, 0)
             elif isinstance(v, float):
                 v = float(val)
             else:
