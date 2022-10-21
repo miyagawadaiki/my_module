@@ -216,10 +216,14 @@ class SParameter:
 
     # 指定された値を含むかどうか
     def include(self, pd):
+        if len(pd) == 0:
+            return False
+
         for k,v in pd.items():
             if self.pdict[k] != v:
                 return False
         return True
+
 
 
 
@@ -250,9 +254,22 @@ class ParamIterator(object):
 class MultiParamIterator(object):
     def __init__(self, param, keys, arrays):
         self._param = param
-        self._arrays = arrays
         self._i = 0
-        self._keys = keys
+
+        if isinstance(keys, tuple):
+            self._keys = keys
+        else:
+            self._keys = (keys,)
+
+        if isinstance(arrays, tuple):
+            self._arrays = arrays
+        else:
+            self._arrays = (arrays,)
+
+        if len(self._keys) != len(self._arrays):
+            print('keysとarraysの長さが違います')
+            raise Exception
+
     
     def __iter__(self):
         return self
@@ -439,6 +456,25 @@ class SimuFileHandler():
 
         
     
+    # 含んでいるべき値と除外したい値を辞書で指定してパラメータリストを得る
+    def _get_params_from_dict(self, include_dict={}, exclude_dict={}, p_list=[]):
+
+        if len(p_list) == 0:
+            p_list = self.param_list
+
+        # 指定されたパラメータセットを持っている物を抽出
+        if len(include_dict) != 0:
+            p_list = [p for p in p_list if p.include(include_dict)]
+        if len(exclude_dict) != 0:
+            p_list = [p for p in p_list if not(p.include(exclude_dict))]
+        #print(p_list)
+
+        # 最小の試行回数を調査
+        att_list = [self.get_num_data(p)[0] for p in p_list]
+        min_attempt = min(att_list)
+        
+        return p_list, min_attempt
+
     
     
     
@@ -704,20 +740,32 @@ class SimuFileHandler():
     
     # 2パラメータを変化させたときのデータについて、データ数の行列を返す
     def get_num_data_matrix(self, temp_param, xlabel, ylabel, xarray, yarray): #, foldername='./'):
+        ret = [[], []]
 
+        for yparam in MultiParamIterator(temp_param, ylabel, yarray):
+            ret[0].append([]); ret[1].append([])
+            for xparam in MultiParamIterator(yparam, xlabel, xarray):
+                t = self.get_num_data(xparam)
+                ret[0][-1].append(t[0])
+                ret[1][-1].append(t[1])
+
+        return np.array(ret)
+
+        """
         xarray = np.array(xarray); yarray = np.array(yarray)
         ret = np.zeros((2, yarray.shape[0], xarray.shape[0]), dtype=int)
     
         i = 0
-        for yparam in ParamIterator(temp_param, ylabel, yarray):
+        for yparam in MultiParamIterator(temp_param, ylabel, yarray):
             j = 0
-            for xparam in ParamIterator(yparam, xlabel, xarray):
+            for xparam in MultiParamIterator(yparam, xlabel, xarray):
                 t = self.get_num_data(xparam) #, foldername)
                 ret[0][i][j] = t[0]; ret[1][i][j] = t[1]
                 j += 1
             i += 1
-    
+
         return ret
+        """
 
 
 
@@ -875,6 +923,8 @@ class SimuFileHandler():
     # 指定個数以下の施行を平均したものをパラメータセットごと読み込んでmatrixで返す    
     def read_and_get_ave_matrix(self, temp_param, xlabel, ylabel, 
                                 xarray, yarray, mx=-1, older=True, show=True):
+        xlen = xarray[0].shape[0] if isinstance(xarray, tuple) else xarray.shape[0]
+        ylen = yarray[0].shape[0] if isinstance(yarray, tuple) else yarray.shape[0]
         
         nums = self.get_num_data_matrix(temp_param, xlabel, ylabel, 
                                         xarray, yarray)#, foldername)
@@ -885,7 +935,8 @@ class SimuFileHandler():
             print("It's short for some data files. ")
             print(nums[0])
             max_ele = max(np.amax(nums[1]), 1)
-            return np.zeros((max_ele, yarray.shape[0], xarray.shape[0]))
+
+            return np.zeros((max_ele, ylen, xlen))
     
         if mx < 0:
             mx = min_nd
@@ -895,13 +946,13 @@ class SimuFileHandler():
         if show:
             print('attempts:', mx)
     
-        ret = np.zeros((min_ele, yarray.shape[0], xarray.shape[0]))
+        ret = np.zeros((min_ele, ylen, xlen))
     
         #i = yarray.shape[0]-1
         i = 0
-        for yparam in ParamIterator(temp_param, ylabel, yarray):
+        for yparam in MultiParamIterator(temp_param, ylabel, yarray):
             j = 0
-            for xparam in ParamIterator(yparam, xlabel, xarray):
+            for xparam in MultiParamIterator(yparam, xlabel, xarray):
                 data = self.read_and_get_ave(xparam, mx, older)#, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
@@ -916,6 +967,9 @@ class SimuFileHandler():
     # ベクトルで返す
     def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True):
         dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
+        if isinstance(xlabel, tuple):
+            dammy_key = (dammy_key,)
+            dammy_val = (dammy_val,)
         return self.read_and_get_ave_matrix(temp_param, xlabel, dammy_key, 
                                             xarray, np.array([dammy_val]), 
                                             mx, older, show)[:,0]
