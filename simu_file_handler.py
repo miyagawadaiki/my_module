@@ -91,23 +91,26 @@ class SParameter:
             if not k in keys:
                 continue
 
-            if len(self.types) > 0:
-                if self.types[k] is int:
-                    s += f"{k:s}={v:d}_"
-                elif self.types[k] is float:
-                    s += f"{k:s}={v:E}_"
+            try:
+                if len(self.types) > 0:
+                    if self.types[k] is int:
+                        s += f"{k:s}={v:d}_"
+                    elif self.types[k] is float:
+                        s += f"{k:s}={v:E}_"
+                    else:
+                        s += f"{k:s}={str(v):s}_"
+                        
                 else:
-                    s += f"{k:s}={str(v):s}_"
-                    
-            else:
-                if isinstance(v, int):
-                    s += f"{k:s}={v:d}_"
-                elif isinstance(v, float):
-                    s += f"{k:s}={v:E}_"
-                    #s += f"{k:s}={int(round(v*100)):d}_"
-                    #s += t.replace('.', '')
-                else:
-                    s += f"{k:s}={str(v):s}_"
+                    if isinstance(v, int):
+                        s += f"{k:s}={v:d}_"
+                    elif isinstance(v, float):
+                        s += f"{k:s}={v:E}_"
+                        #s += f"{k:s}={int(round(v*100)):d}_"
+                        #s += t.replace('.', '')
+                    else:
+                        s += f"{k:s}={str(v):s}_"
+            except TypeError as e:
+                print(e, f'\nkey: {k:s}, val: {v}')
         return s[:-1]
 
 
@@ -182,11 +185,14 @@ class SParameter:
     # オブジェクトの内容を変更する
     def update(self, key, val):
         try:
-            v = self.pdict[key]
-            if isinstance(v, int):
-                v = int(val, 0)
-            elif isinstance(v, float):
-                v = float(val)
+            if isinstance(val, str):
+                typ = self.types[key]
+                if typ is int:
+                    v = int(val, 0)
+                elif typ is float:
+                    v = float(val)
+                else:
+                    v = val
             else:
                 v = val
 
@@ -458,7 +464,7 @@ class SimuFileHandler():
         
     
     # 含んでいるべき値と除外したい値を辞書で指定してパラメータリストを得る
-    def _get_params_from_dict(self, include_dict={}, exclude_dict={}, p_list=[]):
+    def _get_params_from_dict(self, include_dict={}, exclude_dict={}, p_list=[], show=False):
 
         if len(p_list) == 0:
             p_list = self.param_list
@@ -468,7 +474,9 @@ class SimuFileHandler():
             p_list = [p for p in p_list if p.include(include_dict)]
         if len(exclude_dict) != 0:
             p_list = [p for p in p_list if not(p.include(exclude_dict))]
-        #print(p_list)
+
+        if show:
+            print(f'{len(p_list):d} sets have found. ')
 
         # 最小の試行回数を調査
         att_list = [self.get_num_data(p)[0] for p in p_list]
@@ -530,7 +538,7 @@ class SimuFileHandler():
         #fig = plt.figure(figsize=(5,5))
         ax2 = fig.add_subplot(122)
 
-        data = np.zeros((n, n))
+        data = np.zeros((n, n), dtype=int)
 
         for y in range(n):
             for x in range(n):
@@ -557,7 +565,8 @@ class SimuFileHandler():
         for i in range(len(keys)):
             for j in range(len(keys)):
                 text = ax2.text(j, i, data[i, j],
-                               ha="center", va="center", color="w")
+                               ha="center", va="center", color="w", 
+                               fontsize=12)
 
         fig.tight_layout()
         plt.show()
@@ -968,11 +977,14 @@ class SimuFileHandler():
     # ベクトルで返す
     def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True):
         dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
+        dammy_arr = np.array([dammy_val])
+
         if isinstance(xlabel, tuple):
             dammy_key = (dammy_key,)
-            dammy_val = (dammy_val,)
+            dammy_arr = (dammy_arr,)
+
         return self.read_and_get_ave_matrix(temp_param, xlabel, dammy_key, 
-                                            xarray, np.array([dammy_val]), 
+                                            xarray, dammy_arr, 
                                             mx, older, show)[:,0]
     
     
