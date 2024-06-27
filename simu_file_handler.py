@@ -226,11 +226,17 @@ class SParameter:
         if len(pd) == 0:
             return False
 
-        for k,v in pd.items():
-            if self.pdict[k] != v:
+        for key,val in pd.items():
+            if hasattr(val, "__iter__") and self.pdict[key] in val:
+                continue
+
+            elif self.pdict[key] != val:
                 return False
         return True
 
+
+
+    # 
 
 
 
@@ -474,6 +480,10 @@ class SimuFileHandler():
             p_list = [p for p in p_list if p.include(include_dict)]
         if len(exclude_dict) != 0:
             p_list = [p for p in p_list if not(p.include(exclude_dict))]
+        
+        if len(p_list) == 0:
+            print('Nothing was found:', include_dict, exclude_dict)
+            return [], 0
 
         if show:
             print(f'{len(p_list):d} sets have found. ')
@@ -735,7 +745,7 @@ class SimuFileHandler():
                 first = reader.__next__()
                 return int(first[0]), int(first[1])
         else:
-            #print(f"{filename} does not exist.")
+            print(f"{path} does not exist.")
             return 0, 0
 
     
@@ -780,7 +790,7 @@ class SimuFileHandler():
 
 
     # 1パラメータセットのデータを全てリストの形で得る
-    def read_and_get_one_file(self, param, sort=False):
+    def read_and_get_one_file(self, param, sort=False, **kwargs):
         path = str(self.get_filepath(param))
         
         num, n_ele = self.get_num_data(param)
@@ -879,7 +889,7 @@ class SimuFileHandler():
     
     
     # 指定個数以下の施行を平均したものを読み込んで返す    
-    def read_and_get_ave(self, param, mx=-1, older=True, show=False): #, foldername='./'):
+    def read_and_get_ave(self, param, mx=-1, older=True, show=False, **kwargs): #, foldername='./'):
         path = str(self.get_filepath(param))
 
         num, n_ele = self.get_num_data(param)
@@ -903,12 +913,37 @@ class SimuFileHandler():
             
             data = np.zeros(n_ele)
             #count = 0
+            
+            for i, row in enumerate(reader):
+                try:
+                    tmp = list(map(float, row))
+                except ValueError as e:
+                    print('The resulting value contains a string that cannot be converted numerically. ')
+                    print(e)
+                    # もし読み込めないとき用のリストがNoneじゃないなら
+                    if kwargs['replace_list'] is not None:
+                        print(f'Using replace_list: {kwargs["replace_list"]}\n...')
+                        tmp = []
+                        for word, rep in zip(row, kwargs['replace_list']+[0]):
+                            t = None
+                            try:
+                                t = float(word)
+                            except ValueError as e:
+                                print(f'Convert {word} to {rep}')
+                                t = float(rep)
+                            tmp.append(t)
+                
+                if _from <= i < _to:
+                    tmpa = np.array(tmp[:-1]) * tmp[-1]
+                    data = data + tmpa
 
+            """
             for i, row in enumerate(reader):
                 tmp = list(map(float, row))
                 if _from <= i < _to:
                     tmpa = np.array(tmp[:-1]) * tmp[-1]
                     data = data + tmpa
+            """
             
             """
             for row in reader:
@@ -932,7 +967,7 @@ class SimuFileHandler():
     
     # 指定個数以下の施行を平均したものをパラメータセットごと読み込んでmatrixで返す    
     def read_and_get_ave_matrix(self, temp_param, xlabel, ylabel, 
-                                xarray, yarray, mx=-1, older=True, show=True):
+                                xarray, yarray, mx=-1, older=True, show=True, **kwargs):
         xlen = xarray[0].shape[0] if isinstance(xarray, tuple) else xarray.shape[0]
         ylen = yarray[0].shape[0] if isinstance(yarray, tuple) else yarray.shape[0]
         
@@ -963,7 +998,7 @@ class SimuFileHandler():
         for yparam in MultiParamIterator(temp_param, ylabel, yarray):
             j = 0
             for xparam in MultiParamIterator(yparam, xlabel, xarray):
-                data = self.read_and_get_ave(xparam, mx, older)#, show)#, foldername)
+                data = self.read_and_get_ave(xparam, mx, older, **kwargs)#, show)#, foldername)
                 for k in range(min_ele):
                     ret[k][i][j] = data[k]
                 j += 1
@@ -975,7 +1010,7 @@ class SimuFileHandler():
     
     
     # ベクトルで返す
-    def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True):
+    def get_ave_1D(self, temp_param, xlabel, xarray, mx=-1, older=True, show=True, **kwargs):
         dammy_key, dammy_val = list(temp_param.pdict.items())[-1]
         dammy_arr = np.array([dammy_val])
 
@@ -985,15 +1020,15 @@ class SimuFileHandler():
 
         return self.read_and_get_ave_matrix(temp_param, xlabel, dammy_key, 
                                             xarray, dammy_arr, 
-                                            mx, older, show)[:,0]
+                                            mx, older, show, **kwargs)[:,0]
     
     
     # 行列で返す
     def get_ave_2D(self, temp_param, xlabel, ylabel, 
-                   xarray, yarray, mx=-1, older=True, show=True):
+                   xarray, yarray, mx=-1, older=True, show=True, **kwargs):
         
         return self.read_and_get_ave_matrix(temp_param, xlabel, ylabel, 
-                                            xarray, yarray, mx, older, show)
+                                            xarray, yarray, mx, older, show, **kwargs)
 
 
 
